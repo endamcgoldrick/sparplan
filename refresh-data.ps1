@@ -148,7 +148,8 @@ try { $insiders = Get-Insiders } catch { Write-Warning "insider data skipped: $(
 # US insider trades (SEC Form 4) for the tracked US companies, last 30 days. P = open-market purchase, S = open-market sale.
 # Foreign companies with US listings (TSMC, Toyota, ...) don't file Form 4, so they are skipped.
 function Get-UsInsiders($syms, $usdSek) {
-  $sec = @{ 'User-Agent' = "Sparplan personal research $secContact" }  # SEC allows ~10 requests/second
+  # product/version (comment) form: PowerShell 7 (used on GitHub) rejects free text with an @ in User-Agent. SEC allows ~10 requests/second.
+  $sec = @{ 'User-Agent' = "Sparplan/1.0 (personal research; $secContact)" }
   $cik = @{}; (Invoke-RestMethod -Headers $sec 'https://www.sec.gov/files/company_tickers.json').PSObject.Properties | ForEach-Object { $cik[$_.Value.ticker] = $_.Value.cik_str }
   $since = (Get-Date).AddDays(-30); $filings = 0; $out = @()
   foreach ($s in $syms) {
