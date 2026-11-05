@@ -293,7 +293,7 @@ function vFund(sym){
  const wait=r.maxUw>=26?(r.maxUw>=52?t("{n} years",{n:num(r.maxUw/52,1)}):t("{n} months",{n:Math.round(r.maxUw/4.3)})):null;
  const plain=t("If you had put <b>10 000 kr</b> in 5 years ago, it would be worth about <b>{v}</b> today. At its worst point it was down <b>{d}</b> from its previous high",{v:sek(end*100),d:pcf(Math.abs(r.mdd),0)})
   +(wait?t(", and the longest wait to get back to a high was <b>{w}</b>",{w:wait}):"")+".";
- return {kicker:`${esc(t(r.group))}${where(r)} · ${t("ticker")} ${esc(ticker(r.sym))} · ${t("latest price")} ${(+r.price).toLocaleString(loc())} ${r.cur}`,title:esc(r.name),
+ return {kicker:`${esc(t(r.group))}${where(r)} · ${t("ticker")} ${esc(ticker(r.sym))} · ${t("latest price")} ${(+r.price).toLocaleString(loc())} ${esc(r.cur)}`,title:esc(r.name),
   actions:`<button class="btn quiet" data-back>${svgI("back")}${t("Back")}</button><button class="btn${on?"":" primary"}" data-star="${esc(sym)}" aria-pressed="${on}">${starSvg(on)}${on?t("On your watchlist"):t("Add to watchlist")}</button>`,
   html:`<div class="fhead"><div style="display:grid;gap:4px">${riskPill(r.srri)}<span class="sub">${t(HZ[r.hz])} · ${tHzT(r.hz)}</span></div></div>
   <p class="plain">${plain}</p>
@@ -307,7 +307,7 @@ function vFund(sym){
     <div><dt>${t("Avg per year, 5 yrs")}</dt><dd class="${r.cagr<0?"neg":""}">${pct(r.cagr)}</dd></div><div><dt>${t("Last 12 months")}</dt><dd class="${r.r1<0?"neg":""}">${pct(r.r1)}</dd></div>
     <div><dt>${t("Last 3 months")}</dt><dd class="${r.r3m<0?"neg":""}">${pct(r.r3m)}</dd></div><div><dt>${t("Biggest drop")}</dt><dd>${drop(r.mdd)}</dd></div>
     <div><dt>${t("Worst 12 months")}</dt><dd class="${r.worst<0?"neg":""}">${pct(r.worst,0)}</dd></div><div><dt>${t("Reward for risk")}</dt><dd>${num(r.sharpe,2)}</dd></div>
-    <div><dt>${t("Time horizon")}</dt><dd>${t(HZ[r.hz])}</dd></div><div><dt>${t("Traded in")}</dt><dd>${r.cur}</dd></div>
+    <div><dt>${t("Time horizon")}</dt><dd>${t(HZ[r.hz])}</dd></div><div><dt>${t("Traded in")}</dt><dd>${esc(r.cur)}</dd></div>
    </dl></div>`,
   after(){chart(()=>drawDetailCharts(r))}};
 }
@@ -445,7 +445,7 @@ function renderPlan(){
    <div class="alloc" aria-hidden="true">${segs.map(({h,o})=>`<span style="flex-grow:${h.w};background:${col(h)};opacity:${o}">${h.w>=.1?Math.round(h.w*100)+"%":""}</span>`).join("")}</div>
    <p class="sub">${t("Listed in Sweden: <b>{p}</b> of this mix (limit 20%). Sweden is about 1% of the world stock market.",{p:Math.round(seWeight(hold)*100)+"%"})}</p></div>
   <div class="tbl-wrap"><table><thead><tr><th>${t("Holding")}</th><th class="n">${t("Share")}</th><th class="n">${t("Amount")}</th><th>${t("Risk level")}</th><th class="n">${t("Reward for risk")}</th><th>${t("Role")}</th></tr></thead><tbody>
-   ${segs.map(({h,o})=>`<tr${h.group!=="Cash"?` class="link" data-href="${fundHref(h.sym)}" tabindex="0"`:""}><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:${col(h)};opacity:${o}"></i>${esc(hname(h))}</div><div class="sub">${esc(t(h.group))}${h.group!=="Cash"?where(h)+" · "+t("ticker")+" "+esc(ticker(h.sym))+(h.cur!=="SEK"?" ("+t("trades in {c}",{c:h.cur})+")":""):""}</div></td>
+   ${segs.map(({h,o})=>`<tr${h.group!=="Cash"?` class="link" data-href="${fundHref(h.sym)}" tabindex="0"`:""}><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:${col(h)};opacity:${o}"></i>${esc(hname(h))}</div><div class="sub">${esc(t(h.group))}${h.group!=="Cash"?where(h)+" · "+t("ticker")+" "+esc(ticker(h.sym))+(h.cur!=="SEK"?" ("+t("trades in {c}",{c:esc(h.cur)})+")":""):""}</div></td>
     <td class="n">${Math.round(h.w*100)}%</td><td class="n">${sek(A*h.w)}</td><td>${riskPill(h.srri)}</td><td class="n">${h.group==="Cash"?"–":num(h.sharpe,2)}</td><td>${role(h)}</td></tr>`).join("")}
   </tbody></table></div>
   <div style="display:grid;gap:8px"><h3>${t("What this mix would have done over the last 5 years")}</h3>
@@ -535,10 +535,10 @@ function calcMonthly(){
   <div class="kpi"><dt>${t("Biggest drop, last 5 years")}</dt><dd class="neg">${drop(m.mdd)}</dd></div>
   <div class="kpi"><dt>${t("Worst 12 months at the end")}</dt><dd class="neg">${pct(m.worst,0)} ≈ ${sek(end.bal*m.worst/100)}</dd></div>`;
  $("monthHead").textContent=t("Each month, put {m} into",{m:sek(M)});
- $("monthTbl").tBodies[0].innerHTML=hold.map(h=>`<tr class="link" data-href="${fundHref(h.sym)}" tabindex="0"><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:var(--h-${h.part==="Stocks"?"long":"medium"})"></i>${esc(h.name)}</div><div class="sub">${esc(t(h.group))}${where(h)} · ${t("ticker")} ${esc(ticker(h.sym))}${h.cur!=="SEK"?" ("+t("trades in {c}",{c:h.cur})+")":""}</div></td>
+ $("monthTbl").tBodies[0].innerHTML=hold.map(h=>`<tr class="link" data-href="${fundHref(h.sym)}" tabindex="0"><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:var(--h-${h.part==="Stocks"?"long":"medium"})"></i>${esc(h.name)}</div><div class="sub">${esc(t(h.group))}${where(h)} · ${t("ticker")} ${esc(ticker(h.sym))}${h.cur!=="SEK"?" ("+t("trades in {c}",{c:esc(h.cur)})+")":""}</div></td>
    <td>${t(h.part)}</td><td class="n">${Math.round(h.w*100)}%</td><td class="n">${sek(M*h.w)}</td><td>${riskPill(h.srri)}</td><td class="n">${num(h.sharpe,2)}</td></tr>`).join("");
  $("seShare").innerHTML=t("Listed in Sweden: <b>{p}</b> of this mix (limit 20% of each part). Sweden is about 1% of the world stock market.",{p:Math.round(seWeight(hold)*100)+"%"});
- $("backtest").innerHTML=`<b>${t("Tested on real prices")}</b><span class="sub">${t("Saving {m} a month into exactly this mix from {d}{x} would have meant paying in <b>{p}</b>. Today it would be worth <b>{v}</b> ({c}), before fees and tax.",{m:sek(M),d:d[0],x:inp.start?t(", plus {s} at the start,",{s:sek(inp.start)}):"",p:sek(paid),v:sek(V),c:pct((V/paid-1)*100)})}</span>`;
+ $("backtest").innerHTML=`<b>${t("Tested on real prices")}</b><span class="sub">${t("Saving {m} a month into exactly this mix from {d}{x} would have meant paying in <b>{p}</b>. Today it would be worth <b>{v}</b> ({c}), before fees and tax.",{m:sek(M),d:esc(d[0]),x:inp.start?t(", plus {s} at the start,",{s:sek(inp.start)}):"",p:sek(paid),v:sek(V),c:pct((V/paid-1)*100)})}</span>`;
  $("simMethod").innerHTML=`<li>${t("<b>Your choice:</b> the split between stocks and bonds. Everything else comes from the data.")}</li>
   <li>${t("<b>Stock part:</b> index funds and investment companies, Swedish and worldwide, that beat Swedish T-bills over 5 years ({n} did, best 12 used).",{n:S.s.qualified})}</li>
   <li>${t("<b>Bond part:</b> bond funds that beat T-bills over 5 years ({n} did{x}).",{n:S.b.qualified,x:S.b.qualified<3?t(", so the best 3 overall were used"):""})}</li>
@@ -621,7 +621,7 @@ function renderInsiders(){
  const mkr=v=>{const a=Math.abs(v);return (v<0?"−":"")+(a>=1e6?(a/1e6).toLocaleString(loc(),{maximumFractionDigits:a>=1e8?0:1})+" M kr":sek(a))};
  const US=DATA.usInsiders&&DATA.usInsiders.companies&&DATA.usInsiders.companies.length?DATA.usInsiders:null, SE=DATA.insiders&&DATA.insiders.buys?DATA.insiders:null;
  const row=(name,sub,b,href)=>`<tr${href?` class="link" data-href="${href}" tabindex="0"`:""}><td><div class="nm">${esc(name)}</div>${sub?`<div class="sub">${sub}</div>`:""}</td>
-  <td class="n ${b.net<0?"neg":""}">${mkr(b.net)}</td><td class="n">${b.nb}${b.ns?` <span class="sub">(${t("{n} selling",{n:b.ns})})</span>`:""}</td></tr>`;
+  <td class="n ${b.net<0?"neg":""}">${mkr(b.net)}</td><td class="n">${+b.nb||0}${b.ns?` <span class="sub">(${t("{n} selling",{n:+b.ns||0})})</span>`:""}</td></tr>`;
  const first=s=>s.toLowerCase().split(/[\s(]/)[0];
  const show=c=>{
   if(c==="us"){const nm=s=>(BY[s]||{name:s}).name,rows=US.companies.filter(b=>b.buy||b.sell).sort((a,b)=>b.buy-a.buy||b.net-a.net),quiet=US.companies.filter(b=>!b.buy&&!b.sell);

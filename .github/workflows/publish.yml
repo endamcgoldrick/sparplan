@@ -15,12 +15,9 @@ on:
         type: boolean
         default: true
 
-# Least privilege: read the code, publish to Pages, and keep this schedule switched on.
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-  actions: write
+# Least privilege: nothing by default; each job asks only for what it needs.
+# Actions are pinned to exact commits (Dependabot proposes updates), so a moved tag can't change what runs.
+permissions: {}
 
 concurrency:
   group: pages
@@ -30,13 +27,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read   # check out the code
+      pages: read      # look up the site address
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - id: pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Get market data
         shell: pwsh
@@ -62,6 +62,21 @@ jobs:
           # A blocked or failed price source must not replace the live app with an empty one; the last good version stays up.
           if ($n -lt 30) { Write-Host "::error::Only $n instruments came back (expected about 50). Nothing was published, so the live app keeps the previous data."; exit 1 }
           if ($null -eq $d.rates.tbill5yAvg) { Write-Host "::error::Riksbank rates are missing. Nothing was published."; exit 1 }
+          # The data comes from outside sources and is shown in the app, so it must look exactly like data: no markup, sane numbers.
+          if ((Get-Item market-data.json).Length -gt 5MB) { Write-Host "::error::market-data.json is unexpectedly large."; exit 1 }
+          $num = { param($v) $v -is [ValueType] -and -not [double]::IsNaN([double]$v) -and -not [double]::IsInfinity([double]$v) }
+          $bad = foreach ($x in $d.instruments) {
+            $why = @()
+            if ($x.sym -notmatch '^[A-Za-z0-9.^=-]{1,20}$') { $why += 'symbol' }
+            if ($x.cur -notmatch '^[A-Z]{3}$') { $why += 'currency' }
+            if ("$($x.name)|$($x.group)|$($x.region)|$($x.type)" -match '[<>"`\\]') { $why += 'text' }
+            if (@($x.p).Count -ne @($x.d).Count -or @($x.p).Count -lt 60) { $why += 'length' }
+            if (@($x.p | Where-Object { -not (& $num $_) -or [double]$_ -le 0 }).Count) { $why += 'prices' }
+            if (@($x.d | Where-Object { -not ($_ -is [datetime]) -and "$_" -notmatch '^\d{4}-\d{2}-\d{2}' }).Count) { $why += 'dates' }  # PowerShell 7 may read them as dates
+            if ($why) { "$($x.sym): $($why -join ', ')" }
+          }
+          foreach ($k in 'policy', 'tbill3m', 'gov2y', 'gov5y', 'gov10y', 'tbill5yAvg') { if (-not (& $num $d.rates.$k)) { $bad += "rate $k" } }
+          if ($bad) { $bad | ForEach-Object { Write-Host "::error::Unexpected data: $_" }; exit 1 }
 
       - name: Security checks
         run: |
@@ -83,21 +98,25 @@ jobs:
           cp market-data.json _site/
           # New cache name per release, so installed apps pick up the new version
           sed -i "s/const VERSION=\"sparplan-[^\"]*\"/const VERSION=\"sparplan-${GITHUB_SHA::7}-${GITHUB_RUN_NUMBER}\"/" _site/sw.js
-          touch _site/.nojekyll
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write     # publish the site
+      id-token: write  # prove to Pages that this run is allowed to publish
+      actions: write   # keep the schedule switched on (last step)
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
       # GitHub switches off scheduled workflows in repositories with no commits for 60 days.
       # Re-enabling this one after each run keeps the daily refresh going.

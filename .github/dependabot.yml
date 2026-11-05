@@ -1,0 +1,12 @@
+# Proposes updates to the pinned GitHub Actions once a week, as pull requests you review and merge.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7   # wait a week after a release, so a bad or hijacked release has time to be caught
+    groups:
+      actions:
+        patterns: ["*"]
