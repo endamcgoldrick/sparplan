@@ -21,8 +21,11 @@ vulnerability**. Don't open a public issue for them.
   Finansinspektionen, SEC). Before anything is published, the workflow rejects data with
   markup characters, unexpected symbols or currencies, or invalid numbers. If a check fails,
   the previous version stays live.
-- **Safe page.** A Content-Security-Policy allows scripts only from the site itself (no
-  inline scripts, no `eval`), and outside text is escaped before it's shown. The site is
-  served over HTTPS only.
+- **Safe page.** A Content-Security-Policy allows scripts, styles, fonts and data only from
+  the site itself (no inline scripts, no `eval`), and outside text is escaped before it's
+  shown. The site is served over HTTPS only.
+- **No third parties.** Fonts are self-hosted (SIL Open Font License, licences in
+  `app/web/fonts/`), so opening the app sends no request to Google or anyone else. The
+  workflow fails if an outside resource is added.
 - **Desktop version** (`app/Sparplan.ps1`): listens on this computer only (localhost), rejects
   other host names, and needs a per-launch random token to start a data refresh.
