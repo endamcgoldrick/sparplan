@@ -1,0 +1,861 @@
+<title>Sparplan Sweden</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<style>
+/* Calm ledger: paper, ink, one colour system. Horizon (short/medium/long) is the only categorical colour and it is used everywhere
+   risk appears, so the risk meter, cards, table groups, map and simulator mix all read the same way. Red is reserved for losses. */
+:root{
+  --bg:#f6f5f1; --surface:#ffffff; --sunk:#efede7; --ink:#1c2026; --muted:#5a626d; --line:#e2dfd7; --line-strong:#cbc7bd;
+  --accent:#24589a; --accent-soft:#e7eef8; --neg:#b3372f; --pos:#237a4b;
+  --h-short:#3a6ea5; --h-medium:#2b8063; --h-long:#b5651d;
+  --h-short-soft:#e5edf6; --h-medium-soft:#e2f0ea; --h-long-soft:#f6ebdf;
+  --serif:"Source Serif 4",ui-serif,Georgia,serif;
+  --sans:"Source Sans 3",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121417; --surface:#1a1d21; --sunk:#16191c; --ink:#ebe8e2; --muted:#a3aab3; --line:#2b2f35; --line-strong:#3c4149;
+  --accent:#8db6ee; --accent-soft:#1d2836; --neg:#f08a80; --pos:#72cf9c;
+  --h-short:#80b1e6; --h-medium:#67c4a0; --h-long:#e6a65c;
+  --h-short-soft:#1b2633; --h-medium-soft:#18291f; --h-long-soft:#2e2318;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121417; --surface:#1a1d21; --sunk:#16191c; --ink:#ebe8e2; --muted:#a3aab3; --line:#2b2f35; --line-strong:#3c4149;
+  --accent:#8db6ee; --accent-soft:#1d2836; --neg:#f08a80; --pos:#72cf9c;
+  --h-short:#80b1e6; --h-medium:#67c4a0; --h-long:#e6a65c;
+  --h-short-soft:#1b2633; --h-medium-soft:#18291f; --h-long-soft:#2e2318;
+  color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--sans);font-variant-numeric:tabular-nums;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 80px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:72px}
+h1,h2,h3{font-family:var(--serif);font-weight:700;text-wrap:balance;margin:0;line-height:1.15;letter-spacing:-.01em}
+h1{font-size:clamp(2.1rem,5.4vw,3.4rem);letter-spacing:-.02em}
+h2{font-size:clamp(1.55rem,3.2vw,2.05rem)}
+h3{font-size:1.2rem;font-weight:600}
+p{margin:0;max-width:68ch}
+a{color:var(--accent);text-underline-offset:3px}
+.lead{font-size:1.12rem;color:var(--muted)}
+.muted{color:var(--muted)}
+.sub{font-size:.875rem;color:var(--muted);line-height:1.45}
+.neg{color:var(--neg)}
+section{display:grid;gap:22px;scroll-margin-top:72px;min-width:0}
+.sec-head{display:grid;gap:8px}
+.kicker{font-weight:600;font-size:.9rem;color:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:18px;align-content:start;min-width:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+button{font:inherit;color:inherit}
+
+/* sticky section nav */
+.toc{position:sticky;top:0;z-index:5;background:var(--bg);box-shadow:0 0 0 100vmax var(--bg);clip-path:inset(0 -100vmax);border-bottom:1px solid var(--line);
+  display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:10px 0}
+.toc::-webkit-scrollbar{display:none}
+.toc a{flex:none;padding:7px 12px;border-radius:999px;color:var(--muted);text-decoration:none;font-weight:600;font-size:.92rem;min-height:36px;display:inline-flex;align-items:center}
+.toc a:hover{color:var(--ink);background:var(--sunk)}
+.toc .brand{color:var(--ink);font-family:var(--serif);font-size:1rem;margin-right:6px;padding-left:0}
+
+/* header */
+header{display:grid;gap:20px;padding-top:28px}
+.stamp{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.9rem;color:var(--muted)}
+.stamp b{color:var(--ink);font-weight:600}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pos);margin-right:7px;vertical-align:1px}
+
+/* risk: number + meter + word, never colour alone */
+.risk{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.risk b{font-weight:700;font-size:1rem;min-width:.7em}
+.risk .w{font-size:.875rem;color:var(--muted)}
+.meter{display:inline-flex;gap:2px}
+.meter i{width:5px;height:14px;border-radius:2px;background:var(--line-strong)}
+.meter i.on{background:var(--c)}
+
+/* scale legend */
+.scalekey{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;max-width:640px}
+.scalekey .cell{height:34px;border-radius:6px;display:grid;place-items:center;font-weight:700;color:var(--ink);background:var(--soft);border-bottom:3px solid var(--c)}
+.scalekey .zone{font-size:.86rem;line-height:1.3;padding-top:6px;color:var(--muted);border-top:2px solid var(--c);margin-top:4px}
+.scalekey .zone b{display:block;color:var(--ink);font-weight:600}
+.scalecap{display:flex;justify-content:space-between;max-width:640px;font-size:.85rem;color:var(--muted)}
+
+/* at a glance */
+.glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:920px){.glance{grid-template-columns:1fr}}
+.hcard{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--h);border-radius:14px;display:grid;grid-template-rows:auto 1fr;min-width:0}
+.hcard .top{padding:18px 20px 16px;display:grid;gap:6px}
+.hcard .when{font-weight:600;font-size:.92rem;color:var(--h)}
+.hcard .body{padding:4px 20px 18px;display:grid;gap:10px;align-content:start}
+.hcard .lbl{font-size:.85rem;font-weight:600;color:var(--muted)}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border:0;border-top:1px solid var(--line);background:none;cursor:pointer;text-align:left;width:100%;min-height:44px}
+.pick:hover .pn{text-decoration:underline;text-underline-offset:3px}
+.pick .pn{display:block;font-weight:600;line-height:1.3}
+.pick .ps{display:block;font-size:.85rem;color:var(--muted);line-height:1.4;margin-top:2px}
+.pick .pv{text-align:right;line-height:1.2}
+.pick .pv b{display:block;font-size:1.15rem;font-weight:700}
+.pick .pv span{font-size:.8rem;color:var(--muted)}
+.rateline{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.rateline b{font-size:1.15rem;font-weight:700}
+.note{font-size:.85rem;color:var(--muted);background:var(--sunk);border-radius:8px;padding:9px 12px;line-height:1.45}
+
+/* controls */
+.bar{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:end}
+.ctl{display:grid;gap:6px}
+.ctl>span{font-size:.85rem;font-weight:600;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--surface);max-width:100%}
+.seg button{border:0;background:none;padding:7px 13px;border-radius:7px;font-weight:600;font-size:.92rem;cursor:pointer;color:var(--muted);min-height:36px}
+.seg button:hover{color:var(--ink);background:var(--sunk)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+select{font:600 .92rem var(--sans);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 34px 8px 12px;min-height:44px;
+  appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:right 17px center,right 12px center;background-size:5px 5px;background-repeat:no-repeat}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.92rem;cursor:pointer;min-height:44px}
+.toggle input{width:18px;height:18px;accent-color:var(--accent)}
+
+/* tables */
+.tbl-wrap{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.84rem;font-weight:600;color:var(--muted);white-space:nowrap;background:var(--surface)}
+th[data-k]{cursor:pointer;user-select:none}
+th[data-k]:hover{color:var(--ink)}
+th.sorted{color:var(--ink)}
+th.sorted::after{content:attr(data-arrow);margin-left:5px}
+td.n,th.n{text-align:right;white-space:nowrap}
+td.n{font-weight:600}
+tbody tr:last-child td{border-bottom:0}
+#rank tbody tr[data-s]{cursor:pointer}
+#rank tbody tr[data-s]:hover{background:var(--sunk)}
+#rank tbody tr[aria-selected="true"]{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+#rank .x{display:none}
+#rank.all .x{display:table-cell}
+.nm{font-weight:600;line-height:1.3}
+.sbar{display:inline-block;width:48px;height:6px;border-radius:3px;background:var(--line);vertical-align:middle;margin-left:8px;position:relative;overflow:hidden}
+.sbar i{position:absolute;inset:0 auto 0 0;background:var(--ink);opacity:.55;border-radius:3px}
+.groupRow td{background:var(--h-soft);font-weight:700;font-size:.9rem;padding:9px 14px;color:var(--ink)}
+.groupRow td span{font-weight:400;color:var(--muted)}
+.colhelp{font-size:.875rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 18px}
+.colhelp b{color:var(--ink);font-weight:600}
+.empty{padding:32px;text-align:center;color:var(--muted)}
+
+/* detail */
+#detail{scroll-margin-top:68px}
+.dhead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px 20px;align-items:start}
+.dhead h3{font-size:clamp(1.3rem,2.6vw,1.6rem)}
+.two{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;align-content:start}
+.kv div{background:var(--surface);padding:11px 14px;display:grid;gap:1px}
+.kv dt{font-size:.84rem;color:var(--muted)}
+.kv dd{margin:0;font-size:1.15rem;font-weight:700}
+.plain{background:var(--accent-soft);border-radius:10px;padding:14px 16px;line-height:1.55}
+.chartbox{position:relative;min-width:0}
+.chartbox svg{display:block;width:100%;height:auto;overflow:visible;touch-action:pan-y}
+svg text{fill:var(--muted);font:13px var(--sans);font-variant-numeric:tabular-nums}
+.grid line{stroke:var(--line)}
+.tip{position:absolute;z-index:2;pointer-events:none;background:var(--ink);color:var(--bg);font-size:.84rem;font-weight:600;padding:5px 9px;border-radius:6px;white-space:nowrap;transform:translate(-50%,calc(-100% - 10px))}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.875rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px}
+@media (max-width:840px){.sim{grid-template-columns:1fr}}
+.field{display:grid;gap:6px}
+.field label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:600;font-size:.95rem}
+.field label span{font-weight:600;color:var(--muted)}
+.field .src{font-size:.84rem;color:var(--muted);line-height:1.45}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px;margin:0}
+input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:600 1.05rem var(--sans);font-variant-numeric:tabular-nums;min-height:44px}
+.mix{display:grid;gap:10px;padding-top:4px;border-top:1px solid var(--line)}
+.mixbar{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px}
+.hero{display:grid;gap:4px}
+.hero .lbl{font-weight:600;color:var(--muted)}
+.hero .big{font-family:var(--serif);font-size:clamp(2.2rem,6vw,3.2rem);font-weight:700;line-height:1.05;letter-spacing:-.02em}
+.hero .rng{color:var(--muted)}
+.hero .rng b{color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin:0;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kpi{background:var(--surface);padding:11px 14px;display:grid;gap:2px}
+.kpi dt{font-size:.84rem;color:var(--muted)}
+.kpi dd{margin:0;font-size:1.08rem;font-weight:700}
+.kpi .risk{white-space:normal;flex-wrap:wrap;gap:4px 8px}
+details.more{border:1px solid var(--line);border-radius:10px;padding:0 14px}
+details.more summary{cursor:pointer;padding:11px 0;font-weight:600;min-height:44px;display:flex;align-items:center}
+details.more[open]{padding-bottom:14px}
+
+/* my plan */
+.plan{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:840px){.plan{grid-template-columns:1fr}}
+.alloc{display:flex;height:36px;border-radius:8px;overflow:hidden;gap:2px}
+.alloc span{display:grid;place-items:center;color:var(--surface);font-weight:700;font-size:.82rem;min-width:0;overflow:hidden;white-space:nowrap}
+.btn{border:1px solid var(--line-strong);background:var(--surface);border-radius:10px;padding:9px 16px;font-weight:600;cursor:pointer;min-height:44px}
+.btn:hover{background:var(--sunk)}
+.callout{border-left:3px solid var(--accent);padding:2px 0 2px 14px;display:grid;gap:4px}
+#report h3{font-size:1.25rem}
+#planTbl td .sw{vertical-align:0}
+ol.method{margin:0;padding-left:20px;display:grid;gap:6px;font-size:.92rem;color:var(--muted)}
+ol.method b{color:var(--ink)}
+
+/* accounts + glossary */
+#accounts td{vertical-align:top}
+#accounts td:first-child{font-weight:700;white-space:nowrap}
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin:0}
+.gloss div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:6px;align-content:start}
+.gloss dt{font-family:var(--serif);font-weight:600;font-size:1.1rem}
+.gloss dd{margin:0;color:var(--muted);font-size:.95rem}
+footer{font-size:.875rem;color:var(--muted);display:grid;gap:8px;border-top:1px solid var(--line);padding-top:24px}
+
+/* small screens: tables become labelled cards */
+@media (max-width:719px){
+  body{font-size:16px}
+  .wrap{gap:56px}
+  .panel{padding:16px}
+  .toc .brand{display:none}
+  .stack thead{display:none}
+  .stack,.stack tbody{display:block}
+  .stack tbody tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .stack tbody tr:last-child{border-bottom:0}
+  .stack td{border:0;padding:0;display:block}
+  .stack td.full{grid-column:1/-1}
+  .stack td[data-l]::before{content:attr(data-l);display:block;font-size:.8rem;font-weight:600;color:var(--muted)}
+  .stack td.n{text-align:left;font-size:1.02rem}
+  #rank td.c-spark,#rank .sbar{display:none}
+  #rank.all td.x{display:block}
+  #rank tr.groupRow{display:block;padding:0}
+  #rank tr.groupRow td{display:block}
+  #accounts tbody tr{grid-template-columns:1fr}
+  #accounts td:first-child{white-space:normal;font-size:1.05rem}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Sections">
+  <a class="brand" href="#top">Sparplan</a>
+  <a href="#glance">At a glance</a><a href="#plan">My plan</a><a href="#moving">What's moving</a><a href="#ranking">Ranking</a><a href="#map">Risk map</a><a href="#sim">Monthly saving</a><a href="#accounts">Accounts</a><a href="#glossary">Glossary</a>
+</nav>
+
+<header id="top">
+  <span class="kicker">Sparplan · Sweden · all figures in SEK</span>
+  <h1>Your savings options, ranked by real risk</h1>
+  <p class="lead">Each fund and share is scored from its actual price history over the last 5 years. Risk uses the official EU 1–7 scale, the same number printed on every fund's fact sheet.</p>
+  <div style="display:grid;gap:8px">
+    <div class="scalekey" id="scalekey" role="img" aria-label="Risk scale 1 to 7. Levels 1 and 2 suit money needed within 2 years, 3 and 4 suit 2 to 5 years, 5 to 7 suit 5 years or more."></div>
+    <div class="scalecap" aria-hidden="true"><span>← barely moves</span><span>swings a lot →</span></div>
+  </div>
+  <div class="stamp"><span><span class="live"></span>Data from <b id="asof">…</b></span><span>Updated every weekday evening after the Stockholm close</span><span>Prices: Yahoo Finance · Rates: Riksbank</span></div>
+</header>
+
+<section id="glance">
+  <div class="sec-head"><span class="kicker">At a glance</span><h2>Matched to when you need the money</h2>
+  <p class="muted">In each group, the best reward for the risk taken comes first (the Sharpe ratio, the industry's standard measure). Tap a name to see its history.</p></div>
+  <div class="glance" id="glanceCards"><div class="empty">Loading data…</div></div>
+</section>
+
+<section id="plan">
+  <div class="sec-head"><span class="kicker">My plan</span><h2>Where the data says to put a lump sum</h2>
+  <p class="muted">Enter an amount, when you'll need it and how much risk you'll accept. The page searches mixes of the tracked Swedish and worldwide funds and shares for the one that earned the most over the last 5 years, while keeping the whole mix inside the risk level you chose. It follows fixed rules with no opinions, and the method is shown under the report.</p></div>
+  <div class="plan">
+    <div class="panel">
+      <div class="field"><label for="pAmt">Amount to invest <span>kr</span></label><input type="number" id="pAmt" min="1000" step="1000" inputmode="numeric"></div>
+      <div class="ctl"><span>When will you need it?</span><div class="seg" id="pHz" role="group" aria-label="Time horizon"></div></div>
+      <div class="field"><label for="pYrs">Years invested <span id="pYrsOut"></span></label><input type="range" id="pYrs"></div>
+      <div class="field"><label for="pRisk">Risk you're willing to take <span id="pRiskOut"></span></label><input type="range" id="pRisk" min="1" max="6" step="1">
+        <div class="scalecap" aria-hidden="true"><span>← steadier</span><span>more growth, bigger drops →</span></div>
+        <span class="src" id="pRiskSrc"></span></div>
+      <label class="toggle"><input type="checkbox" id="pShares"> Include individual shares</label>
+    </div>
+    <div class="panel" id="report" aria-live="polite"><div class="empty">Loading data…</div></div>
+  </div>
+</section>
+
+<section id="moving">
+  <div class="sec-head"><span class="kicker">What's moving</span><h2>What insiders are buying, and what's rising</h2>
+  <p class="muted">Two things the data shows right now: where company insiders put their own money in the last 30 days, from the public insider registers, and which tracked funds and shares rose most recently. Neither predicts the future. Insiders can be wrong, and a rise can reverse.</p></div>
+  <div class="two" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))">
+    <div class="panel"><div style="display:grid;gap:8px"><h3>What insiders are doing</h3><div class="seg" id="insSeg" role="group" aria-label="Country" hidden></div><span class="sub" id="insFrom"></span></div>
+      <div class="tbl-wrap"><table class="stack" id="insTbl"><thead><tr><th>Company</th><th class="n">Net bought</th><th class="n">Insiders buying</th></tr></thead><tbody><tr><td colspan="3" class="empty">Loading…</td></tr></tbody></table></div>
+      <p class="sub" id="insSells"></p>
+      <p class="sub" id="insSrc"></p></div>
+    <div class="panel"><h3>Rising most, last 3 months</h3>
+      <div class="tbl-wrap"><table class="stack" id="momTbl"><thead><tr><th>Name</th><th class="n">3 months</th><th class="n">12 months</th><th>Risk level</th></tr></thead><tbody></tbody></table></div>
+      <p class="sub">From the same price data as the rest of the page, in SEK, with dividends included. Tap a row to see its history.</p></div>
+  </div>
+</section>
+
+<section id="ranking">
+  <div class="sec-head"><span class="kicker">Full ranking</span><h2>Everything, from steadiest to bumpiest</h2></div>
+  <div class="bar">
+    <div class="ctl"><span>Time horizon</span><div class="seg" id="fHz" role="group" aria-label="Time horizon"></div></div>
+    <div class="ctl"><span>Type</span><div class="seg" id="fType" role="group" aria-label="Type"></div></div>
+    <label class="ctl"><span>Sort by</span><select id="sortSel">
+      <option value="srri:1">Risk level, lowest first</option><option value="cagr:-1">Average per year, highest first</option>
+      <option value="mdd:-1">Biggest drop, smallest first</option><option value="sharpe:-1">Reward for risk, best first</option>
+      <option value="vol:1">Swings per year, lowest first</option><option value="name:1">Name, A–Z</option></select></label>
+    <label class="toggle"><input type="checkbox" id="allCols"> Show all figures</label>
+  </div>
+  <div class="tbl-wrap"><table id="rank" class="stack">
+    <thead><tr>
+      <th data-k="srri">Risk level</th><th data-k="name">Name</th><th>Last 5 years</th>
+      <th class="n" data-k="cagr">Avg per year</th>
+      <th class="n" data-k="mdd">Biggest drop</th>
+      <th class="n" data-k="sharpe">Reward for risk</th>
+      <th class="n x" data-k="vol">Swings / yr</th>
+      <th class="n x" data-k="r1">Last 12 mo</th>
+      <th class="n x" data-k="worst">Worst 12 mo</th>
+    </tr></thead>
+    <tbody><tr><td colspan="9" class="empty">Loading market data…</td></tr></tbody>
+  </table></div>
+  <p class="colhelp"><span><b>Avg per year</b> average yearly gain over 5 years, dividends included</span><span><b>Biggest drop</b> largest fall from a high to a later low</span><span><b>Reward for risk</b> return above T-bills per unit of swing; above 0.5 is good</span></p>
+  <div class="panel" id="detail" tabindex="-1" aria-live="polite"></div>
+</section>
+
+<section id="map">
+  <div class="sec-head"><span class="kicker">Risk map</span><h2>Did more risk pay off?</h2>
+  <p class="muted">Further right means bumpier, higher up means more return per year. The best spots are toward the top left. Tap a dot to open it.</p></div>
+  <div class="panel">
+    <div class="chartbox" id="scatterBox"><svg id="scatter" role="img" aria-label="Average return per year against yearly swings for each instrument"></svg></div>
+    <div class="legend"><span><i style="background:var(--h-short)"></i>Short term · risk 1–2</span><span><i style="background:var(--h-medium)"></i>Medium term · risk 3–4</span><span><i style="background:var(--h-long)"></i>Long term · risk 5–7</span></div>
+  </div>
+</section>
+
+<section id="sim">
+  <div class="sec-head"><span class="kicker">Monthly saving</span><h2>Where a monthly saving could go</h2>
+  <p class="muted">Choose how much you save each month and how to split it between stocks and bonds. Inside each part, the funds are picked by the data: the combination with the best reward for risk over the last 5 years. Your inputs stay in this browser.</p></div>
+  <div class="sim">
+    <div class="panel">
+      <div class="field"><label for="monthly">Monthly saving <span>kr</span></label><input type="number" id="monthly" min="0" step="100" inputmode="numeric"></div>
+      <div class="field"><label for="start">Already saved, to invest now <span>kr</span></label><input type="number" id="start" min="0" step="1000" inputmode="numeric"></div>
+      <div class="field"><label for="years">Years of saving <span id="yearsOut"></span></label><input type="range" id="years" min="1" max="40"></div>
+      <div class="mix">
+        <div class="mixbar" id="mixbar" aria-hidden="true"><span style="background:var(--h-long)"></span><span style="background:var(--h-medium)"></span></div>
+        <div class="field"><label for="sStocks"><span style="color:var(--ink)">Stocks and bonds</span><span id="splitOut"></span></label><input type="range" id="sStocks" min="0" max="100" step="5">
+          <div class="scalecap" aria-hidden="true"><span>← all bonds</span><span>all stocks →</span></div></div>
+        <span class="src" id="splitRisk"></span>
+      </div>
+      <details class="more"><summary>Fees and tax</summary><div style="display:grid;gap:16px">
+        <div class="field"><label for="fee">Fund fees <span id="feeOut"></span></label><input type="range" id="fee" min="0" max="1" step="0.05"><span class="src">Index ETFs like these typically charge 0.05–0.4% a year.</span></div>
+        <div class="field"><label for="isk">ISK flat tax <span id="iskOut"></span></label><input type="range" id="isk" min="0" max="2" step="0.05"><span class="src">Charged on the balance above 300 000 kr, the 2026 tax-free level.</span></div>
+      </div></details>
+    </div>
+    <div class="panel">
+      <div class="hero" id="hero" aria-live="polite"></div>
+      <dl class="kpis" id="kpis"></dl>
+      <div style="display:grid;gap:10px"><h3 id="monthHead">Each month, put</h3>
+        <div class="tbl-wrap"><table id="monthTbl" class="stack"><thead><tr><th>Fund</th><th>Part</th><th class="n">Share</th><th class="n">Each month</th><th>Risk level</th><th class="n">Reward for risk</th></tr></thead><tbody></tbody></table></div><p class="sub" id="seShare"></p></div>
+      <div class="callout" id="backtest"></div>
+      <div style="display:grid;gap:8px"><h3>Looking ahead</h3>
+      <div class="chartbox" id="chartBox"><svg id="chart" role="img" aria-label="Projected balance over time"></svg></div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>Cautious estimate</span>
+        <span><i style="background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)"></i>Likely range</span>
+        <span><i style="background:var(--muted);height:3px;vertical-align:3px"></i>What you paid in</span>
+      </div></div>
+      <details class="more"><summary>How the funds were picked</summary><ol class="method" id="simMethod"></ol></details>
+      <p class="sub" id="simNote"></p>
+    </div>
+  </div>
+</section>
+
+<section id="accounts">
+  <div class="sec-head"><span class="kicker">Account types</span><h2>Where to hold it in Sweden</h2></div>
+  <div class="tbl-wrap"><table class="stack">
+    <thead><tr><th>Account</th><th>How it's taxed</th><th>Typical use</th><th>Watch out for</th></tr></thead>
+    <tbody>
+      <tr><td>ISK<br><span class="sub">Investeringssparkonto</span></td><td data-l="How it's taxed">No tax on gains or dividends. Instead a yearly flat tax on the account value, roughly 1% a year. From 2026 the first 300 000 kr is tax-free.</td><td data-l="Typical use">Stocks, funds and ETFs held over time.</td><td data-l="Watch out for">The tax is due even in a losing year.</td></tr>
+      <tr><td>KF<br><span class="sub">Kapitalförsäkring</span></td><td data-l="How it's taxed">Same flat-tax idea as ISK, paid by the insurer.</td><td data-l="Typical use">Foreign dividends, naming beneficiaries.</td><td data-l="Watch out for">Formally owned by the insurer.</td></tr>
+      <tr><td>AF<br><span class="sub">Aktie- och fondkonto</span></td><td data-l="How it's taxed">30% tax on gains and dividends. Losses are 70% deductible.</td><td data-l="Typical use">Bonds when yields are below the ISK tax rate.</td><td data-l="Watch out for">K4 paperwork every time you sell.</td></tr>
+      <tr><td>Sparkonto</td><td data-l="How it's taxed">30% tax on interest. State guarantee up to 1 050 000 kr per bank.</td><td data-l="Typical use">Emergency buffer, money needed within ~2 years.</td><td data-l="Watch out for">Inflation can outpace the interest.</td></tr>
+      <tr><td>Pension<br><span class="sub">PPM / tjänstepension</span></td><td data-l="How it's taxed">Taxed as income when paid out.</td><td data-l="Typical use">Very long-term. See minpension.se.</td><td data-l="Watch out for">Locked until retirement age.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="glossary">
+  <div class="sec-head"><span class="kicker">Glossary</span><h2>What the numbers mean</h2></div>
+  <dl class="gloss">
+    <div><dt>Risk level (1–7)</dt><dd>The EU's standard scale (ESMA SRRI). It's set by how much the price swung each year over 5 years: 1 under 0.5%, 2 under 2%, 3 under 5%, 4 under 10%, 5 under 15%, 6 under 25%, 7 at 25% or more.</dd></div>
+    <div><dt>Swings per year (volatility)</dt><dd>How far the price typically moves up or down in a year. 15% means a normal year can easily land 15% above or below average.</dd></div>
+    <div><dt>Biggest drop</dt><dd>The largest fall from a high point to a later low. It's the loss you'd have seen if you bought at the worst moment.</dd></div>
+    <div><dt>Reward for risk (Sharpe ratio)</dt><dd>Return above what risk-free Swedish T-bills paid (avg <span id="rfTxt">–</span>), divided by the swings. Above 0.5 is good, below 0 means T-bills did better.</dd></div>
+    <div><dt>Time horizon</dt><dd>Follows from the risk level. Levels 1–2 are short (under 2 years), 3–4 medium (2–5 years), 5–7 long (5 years or more), the time usually needed to recover from a bad drop.</dd></div>
+    <div><dt>Currency effect</dt><dd>Holdings traded in EUR or USD are measured in SEK, so currency moves are part of their swings. The funds trade in EUR because EU rules generally let Swedish savers buy only EU-registered (UCITS) funds. Each one is labelled with where its money is invested, such as Global, US or Japan, not where it trades. That's why euro bond funds land at level 4 here.</dd></div>
+  </dl>
+</section>
+
+<footer>
+  <span>Method: weekly dividend-adjusted closes for 5 years from Yahoo Finance, converted to SEK at the Riksbank's official EUR/SEK fixing. Volatility is the standard deviation of weekly log returns × √52. Sharpe uses the 5-year average 3-month T-bill rate. Past results are not forecasts. The official SRI on a fund's KID also adds credit risk and may differ.</span>
+  <span>This page is for learning, not a recommendation to buy anything. Places to buy these in Sweden: Avanza, Nordnet, or your bank. Compare fees before you choose.</span>
+</footer>
+</div>
+
+<script>
+const BANDS=[0.5,2,5,10,15,25], RISK=["","Very low","Low","Low–medium","Medium","Medium–high","High","Very high"];
+const HZ={short:"Short",medium:"Medium",long:"Long"}, HZR={short:"1–2",medium:"3–4",long:"5–7"}, HZT={short:"under 2 years",medium:"2–5 years",long:"5 years or more"};
+const hzOf=s=>s<=2?"short":s<=4?"medium":"long";
+const $=id=>document.getElementById(id);
+const pct=(v,d=1)=>v==null||!isFinite(v)?"–":(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(d)+"%";
+const drop=v=>"−"+Math.abs(v).toFixed(0)+"%";
+const sek=v=>Math.round(v).toLocaleString("sv-SE")+" kr";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const short=n=>n.split(" (")[0];
+const where=r=>r.region?" · "+esc(r.region):"";
+const meter=s=>`<span class="meter" aria-hidden="true">${[1,2,3,4,5,6,7].map(i=>`<i class="${i<=s?"on":""}" style="--c:var(--h-${hzOf(i)})"></i>`).join("")}</span>`;
+const riskPill=s=>`<span class="risk"><b>${s}</b>${meter(s)}<span class="w">${RISK[s]}</span></span>`;
+
+const st=(()=>{const d={start:0,monthly:2000,years:20,sstocks:70,fee:.2,isk:1.05,
+  hz:"all",type:"all",sort:"srri",dir:1,sel:null,all:false,amt:100000,phz:"long",pyrs:10,prisk:5,pshares:false};
+ try{return Object.assign(d,JSON.parse(localStorage.getItem("sparplan3")||"{}"))}catch(e){return d}})();
+const save=()=>{try{localStorage.setItem("sparplan3",JSON.stringify(st))}catch(e){}};
+
+let DATA=null, ROWS=[], READY=false;
+
+function metrics(x,rf){
+  const p=x.p, n=p.length, lr=[];
+  for(let i=1;i<n;i++)lr.push(Math.log(p[i]/p[i-1]));
+  const m=lr.reduce((a,b)=>a+b,0)/lr.length;
+  const sd=Math.sqrt(lr.reduce((a,b)=>a+(b-m)**2,0)/(lr.length-1));
+  const vol=sd*Math.sqrt(52)*100;
+  const yrs=(new Date(x.d[n-1])-new Date(x.d[0]))/31557600000;
+  const cagr=(Math.pow(p[n-1]/p[0],1/yrs)-1)*100;
+  const back=w=>n>w?(p[n-1]/p[n-1-w]-1)*100:null;
+  let peak=p[0],mdd=0,peakI=0,maxUw=0;
+  for(let i=0;i<n;i++){if(p[i]>=peak){peak=p[i];peakI=i}else maxUw=Math.max(maxUw,i-peakI);mdd=Math.min(mdd,(p[i]/peak-1)*100)}
+  let worst=Infinity;for(let i=52;i<n;i++)worst=Math.min(worst,(p[i]/p[i-52]-1)*100);
+  const srri=1+BANDS.filter(b=>vol>=b).length;
+  return {...x,vol,cagr,r1:back(52),r3m:back(13),mdd,worst,maxUw,srri,hz:hzOf(srri),sharpe:(cagr-rf)/vol,grow:p[n-1]/p[0]*100};
+}
+
+function renderScaleKey(){
+ const cells=[1,2,3,4,5,6,7].map(i=>{const h=hzOf(i);return `<div class="cell" style="--c:var(--h-${h});--soft:var(--h-${h}-soft)">${i}</div>`}).join("");
+ const zone=(h,span)=>`<div class="zone" style="grid-column:span ${span};--c:var(--h-${h})"><b>${HZ[h]} term</b>${HZT[h]}</div>`;
+ $("scalekey").innerHTML=cells+zone("short",2)+zone("medium",2)+zone("long",3);
+}
+
+async function load(){
+  renderScaleKey();
+  try{const r=await fetch("market-data.json");if(!r.ok)throw new Error(r.status);DATA=await r.json()}
+  catch(e){$("glanceCards").innerHTML='<div class="empty">The market data did not load. Ask Claude to refresh and republish the page.</div>';
+    document.querySelector("#rank tbody").innerHTML='<tr><td colspan="9" class="empty">No data loaded.</td></tr>';return}
+  const rf=DATA.rates.tbill5yAvg;
+  ROWS=DATA.instruments.map(x=>metrics(x,rf));
+  const g=new Date(DATA.generated);$("asof").textContent=isNaN(g)?DATA.generated:g.toLocaleString("sv-SE",{dateStyle:"medium",timeStyle:"short"});
+  $("rfTxt").textContent=rf.toFixed(2)+"%";
+  if(!ROWS.find(r=>r.sym===st.sel))st.sel=ROWS.slice().sort((a,b)=>b.sharpe-a.sharpe)[0].sym;
+  renderGlance();renderMoving();buildFilters();renderTable();renderScatter();renderDetail();initSim();initPlan();
+  READY=true;
+}
+
+/* at a glance */
+function renderGlance(){
+ const R=DATA.rates;
+ const pickList=list=>list.map(r=>`<button class="pick" data-s="${esc(r.sym)}">
+   <span><span class="pn">${esc(short(r.name))}</span><span class="ps">${esc(r.group)}${where(r)}</span>
+   <span class="ps">Risk ${r.srri} · ${RISK[r.srri]} · biggest drop ${drop(r.mdd)}</span></span>
+   <span class="pv"><b class="${r.cagr<0?"neg":""}">${pct(r.cagr)}</b><span>a year</span></span></button>`).join("");
+ const by=h=>ROWS.filter(r=>r.hz===h).sort((a,b)=>b.sharpe-a.sharpe);
+ const shortFunds=by("short"), med=by("medium"), lng=by("long");
+ const card=(h,title,desc,body)=>`<article class="hcard" style="--h:var(--h-${h})"><div class="top"><span class="when">${HZT[h][0].toUpperCase()+HZT[h].slice(1)} · risk ${HZR[h]}</span><h3>${title}</h3><p class="sub">${desc}</p></div><div class="body">${body}</div></article>`;
+ $("glanceCards").innerHTML=
+  card("short","Short term: keep it safe",shortFunds.length?shortFunds.length+" tracked funds qualify.":"None of the tracked funds swung little enough in SEK, so cash-like options fit here.",
+   `<span class="lbl">Paying today, from the Riksbank</span>
+   <div>${[["Savings account, roughly",R.policy],["3-month T-bill / money market",R.tbill3m],["2-year government bond",R.gov2y]].map(([k,v])=>`<div class="rateline"><span>${k}</span><b>${(+v).toFixed(2)}%</b></div>`).join("")}</div>
+   ${shortFunds.length?pickList(shortFunds.slice(0,3)):""}
+   <p class="note">Savings accounts are covered by the state deposit guarantee up to 1 050 000 kr per bank.</p>`)+
+  card("medium","Medium term: steady growth",`${med.length} instruments qualify, mostly bond funds.`,
+   `<span class="lbl">Best reward for risk first</span><div>${pickList(med.slice(0,4))}</div>`)+
+  card("long","Long term: growth, with bumps",`${lng.length} instruments qualify: stock funds and shares.`,
+   `<span class="lbl">Best reward for risk first</span><div>${pickList(lng.slice(0,5))}</div>`);
+ $("glanceCards").querySelectorAll(".pick").forEach(b=>b.onclick=()=>select(b.dataset.s,true));
+}
+
+/* what's moving: FI insider trades + 3-month momentum */
+function renderMoving(){
+ const mkr=v=>{const a=Math.abs(v);return (v<0?"−":"")+(a>=1e6?(a/1e6).toLocaleString("sv-SE",{maximumFractionDigits:a>=1e8?0:1})+" M kr":sek(a))};
+ const mom=ROWS.filter(r=>r.r3m!=null).sort((a,b)=>b.r3m-a.r3m).slice(0,10);
+ $("momTbl").tBodies[0].innerHTML=mom.map(r=>`<tr data-s="${esc(r.sym)}" style="cursor:pointer"><td class="full"><div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.group)}${where(r)}</div></td>
+  <td class="n ${r.r3m<0?"neg":""}" data-l="3 months">${pct(r.r3m)}</td><td class="n ${r.r1<0?"neg":""}" data-l="12 months">${pct(r.r1)}</td><td data-l="Risk level">${riskPill(r.srri)}</td></tr>`).join("");
+ $("momTbl").querySelectorAll("tr[data-s]").forEach(tr=>tr.onclick=()=>select(tr.dataset.s,true));
+ const US=DATA.usInsiders&&DATA.usInsiders.companies&&DATA.usInsiders.companies.length?DATA.usInsiders:null, SE=DATA.insiders&&DATA.insiders.buys?DATA.insiders:null;
+ const row=(name,sub,b)=>`<tr><td class="full"><div class="nm">${esc(name)}</div>${sub?`<div class="sub">${sub}</div>`:""}</td>
+  <td class="n ${b.net<0?"neg":""}" data-l="Net bought">${mkr(b.net)}</td><td class="n" data-l="Insiders buying">${b.nb}${b.ns?` <span class="sub">(${b.ns} selling)</span>`:""}</td></tr>`;
+ const first=s=>s.toLowerCase().split(/[\s(]/)[0];
+ const show=c=>{
+  if(c==="us"){const nm=s=>(ROWS.find(r=>r.sym===s)||{name:s}).name,rows=US.companies.filter(b=>b.buy||b.sell).sort((a,b)=>b.buy-a.buy||b.net-a.net),quiet=US.companies.filter(b=>!b.buy&&!b.sell);
+   $("insFrom").textContent=`United States · ${US.from} to ${US.to} · ${US.filings} insider reports for the ${US.companies.length} tracked US companies`;
+   $("insTbl").tBodies[0].innerHTML=rows.map(b=>{const m=ROWS.find(r=>r.sym===b.sym);return row(m?m.name:b.sym,m?`${pct(m.r3m)} in 3 months`:"",b)}).join("");
+   $("insSells").textContent=quiet.length?`No open-market insider trades: ${quiet.map(b=>short(nm(b.sym))).join(", ")}.`:"";
+   $("insSrc").textContent="Source: SEC Form 4 filings. Insiders at large US companies mostly sell, for pay and diversification, so a purchase is rarer and says more. Covers open-market purchases and sales only. Foreign companies with US listings, such as TSMC and Toyota, don't file these reports.";return}
+  const match=co=>ROWS.find(r=>r.cur==="SEK"&&first(r.name)===first(co)); // shortcut: first-word name match, misses e.g. "SEB" vs "Skandinaviska Enskilda"; use ISIN if the price data gains it
+  $("insFrom").textContent=`Sweden · ${SE.from} to ${SE.to} · ${SE.trades} reported trades, all listed companies`;
+  $("insTbl").tBodies[0].innerHTML=SE.buys.map(b=>{const m=match(b.co);return row(b.co,m?`Tracked here as ${esc(short(m.name))} · ${pct(m.r3m)} in 3 months`:"",b)}).join("");
+  $("insSells").textContent=SE.sells&&SE.sells.length?`Most net selling: ${SE.sells.slice(0,3).map(s=>`${s.co} (${mkr(-s.net)})`).join(", ")}.`:"";
+  $("insSrc").textContent="Source: Finansinspektionen's insider register (insynsregistret). Counts only open-market share trades in SEK. Share-programme grants are excluded. One large buyer, such as a holding company, can dominate the amount, so check how many insiders are buying.";
+ };
+ if(!US&&!SE){$("insTbl").tBodies[0].innerHTML='<tr><td colspan="3" class="empty">Insider data did not load in the last refresh.</td></tr>';return}
+ const opts=[US&&["us","United States"],SE&&["se","Sweden"]].filter(Boolean),el=$("insSeg");
+ el.hidden=opts.length<2;el.innerHTML="";
+ opts.forEach(([k,v],i)=>{const b=document.createElement("button");b.textContent=v;b.setAttribute("aria-pressed",i===0);
+  b.onclick=()=>{el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));show(k)};el.append(b)});
+ show(opts[0][0]);
+}
+
+/* filters + table */
+function seg(el,opts,key){el.innerHTML="";Object.entries({all:"All",...opts}).forEach(([k,v])=>{const b=document.createElement("button");b.textContent=v;
+ b.setAttribute("aria-pressed",st[key]===k);b.onclick=()=>{st[key]=k;el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));save();renderTable();renderScatter()};el.append(b)})}
+function setSort(k,d){st.sort=k;st.dir=d;const v=k+":"+d;$("sortSel").value=[...$("sortSel").options].some(o=>o.value===v)?v:"";save();renderTable()}
+function buildFilters(){
+ seg($("fHz"),{short:"Short",medium:"Medium",long:"Long"},"hz");
+ const groups={};ROWS.forEach(r=>groups[r.group]=r.group.replace(/y$/,"ie")+"s");seg($("fType"),groups,"type");
+ $("allCols").checked=st.all;$("rank").classList.toggle("all",st.all);
+ $("allCols").onchange=e=>{st.all=e.target.checked;$("rank").classList.toggle("all",st.all);save()};
+ $("sortSel").value=st.sort+":"+st.dir;
+ $("sortSel").onchange=e=>{const [k,d]=e.target.value.split(":");setSort(k,+d)};
+ document.querySelectorAll("#rank th[data-k]").forEach(th=>th.onclick=()=>{const k=th.dataset.k;setSort(k,st.sort===k?-st.dir:(k==="name"||k==="srri"||k==="vol"?1:-1))});
+}
+const visible=()=>ROWS.filter(r=>(st.hz==="all"||r.hz===st.hz)&&(st.type==="all"||r.group===st.type));
+function spark(p,w=110,h=30){const mn=Math.min(...p),mx=Math.max(...p),X=i=>i/(p.length-1)*w,Y=v=>h-3-(v-mn)/(mx-mn||1)*(h-6);
+ const up=p[p.length-1]>=p[0];return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" style="display:block"><path d="${p.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("")}" fill="none" stroke="var(${up?"--ink":"--neg"})" stroke-opacity="${up?.7:1}" stroke-width="1.5" stroke-linejoin="round"/></svg>`}
+function renderTable(){
+ const k=st.sort,d=st.dir;
+ const rows=visible().sort((a,b)=>(k==="name"?a.name.localeCompare(b.name):(a[k]??-1e9)-(b[k]??-1e9))*d||a.vol-b.vol);
+ document.querySelectorAll("#rank th").forEach(th=>{const on=th.dataset.k===k;th.classList.toggle("sorted",on);if(on)th.dataset.arrow=d>0?"↑":"↓";
+  if(th.dataset.k)th.setAttribute("aria-sort",on?(d>0?"ascending":"descending"):"none")});
+ const tb=document.querySelector("#rank tbody");
+ if(!rows.length){tb.innerHTML='<tr><td colspan="9" class="empty">Nothing in this group. Pick "All" to see everything.</td></tr>';return}
+ const maxS=Math.max(...ROWS.map(r=>r.sharpe),0.01);
+ let last=null,html="";
+ rows.forEach(r=>{
+  if(k==="srri"&&r.hz!==last){last=r.hz;html+=`<tr class="groupRow" style="--h-soft:var(--h-${r.hz}-soft)"><td colspan="9">${HZ[r.hz]} term · risk ${HZR[r.hz]} <span>· for money needed ${r.hz==="short"?"within 2 years":r.hz==="medium"?"in 2–5 years":"in 5 years or more"}</span></td></tr>`}
+  html+=`<tr data-s="${esc(r.sym)}" tabindex="0" aria-selected="${r.sym===st.sel}">
+  <td class="full">${riskPill(r.srri)}</td>
+  <td class="full"><div class="nm">${esc(r.name)}</div><div class="sub">${esc(r.group)}${where(r)}</div></td>
+  <td class="c-spark">${spark(r.p)}</td>
+  <td class="n ${r.cagr<0?"neg":""}" data-l="Avg per year">${pct(r.cagr)}</td>
+  <td class="n" data-l="Biggest drop">${drop(r.mdd)}</td>
+  <td class="n" data-l="Reward for risk">${r.sharpe.toFixed(2)}<span class="sbar"><i style="width:${Math.max(0,r.sharpe/maxS*100)}%"></i></span></td>
+  <td class="n x" data-l="Swings / yr">${r.vol.toFixed(1)}%</td><td class="n x ${r.r1<0?"neg":""}" data-l="Last 12 mo">${pct(r.r1)}</td><td class="n x ${r.worst<0?"neg":""}" data-l="Worst 12 mo">${pct(r.worst,0)}</td></tr>`});
+ tb.innerHTML=html;
+ tb.querySelectorAll("tr[data-s]").forEach(tr=>{const go=()=>select(tr.dataset.s,true);tr.onclick=go;tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}}});
+}
+function select(sym,reveal){st.sel=sym;save();document.querySelectorAll("#rank tbody tr[data-s]").forEach(t=>t.setAttribute("aria-selected",t.dataset.s===sym));renderDetail();renderScatter();
+ if(reveal){const d=$("detail"),t=d.getBoundingClientRect().top;if(t<60||t>innerHeight*.55){d.scrollIntoView({block:"start"});d.focus({preventScroll:true})}}}
+
+function niceStep(x){const e=Math.pow(10,Math.floor(Math.log10(x)));const f=x/e;return (f<1.5?1:f<3?2:f<7?5:10)*e}
+function tipper(box){let t=box.querySelector(".tip");if(!t){t=document.createElement("div");t.className="tip";t.hidden=true;box.append(t)}return t}
+const boxW=id=>Math.max(280,Math.round($(id).clientWidth));
+
+/* scatter: horizon zones shaded, SRRI boundaries dashed */
+function renderScatter(){
+ const W=boxW("scatterBox"),narrow=W<560,H=narrow?330:400,P={l:narrow?44:56,r:14,t:30,b:50},w=W-P.l-P.r,h=H-P.t-P.b;
+ const svg=$("scatter");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+ const vmax=Math.max(40,...ROWS.map(r=>r.vol))*1.05, X=v=>P.l+Math.sqrt(v/vmax)*w;
+ const ys=ROWS.map(r=>r.cagr),ymin=Math.min(-5,...ys)-2,ymax=Math.max(10,...ys)+2,Y=v=>P.t+h-(v-ymin)/(ymax-ymin)*h;
+ const edges=[0,...BANDS,vmax];let s="";
+ [["short",0,2],["medium",2,10],["long",10,vmax]].forEach(([z,a,b])=>s+=`<rect x="${X(a)}" y="${P.t}" width="${X(b)-X(a)}" height="${h}" fill="var(--h-${z}-soft)"/>
+  <text x="${X(a)+6}" y="${P.t+18}" style="fill:var(--h-${z});font-weight:700">${HZ[z]}</text>`);
+ BANDS.forEach(b=>s+=`<line x1="${X(b)}" x2="${X(b)}" y1="${P.t-16}" y2="${P.t+h}" stroke="var(--line-strong)" stroke-dasharray="2 3"/>`);
+ for(let i=0;i<7;i++)s+=`<text x="${(X(edges[i])+X(edges[i+1]))/2}" y="${P.t-8}" text-anchor="middle" style="font-weight:700;fill:var(--ink)">${i+1}</text>`;
+ const step=niceStep((ymax-ymin)/5);let g="";
+ for(let v=Math.ceil(ymin/step)*step;v<=ymax;v+=step)g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}"${Math.abs(v)<1e-9?' style="stroke:var(--muted)"':""}/><text x="${P.l-8}" y="${Y(v)+4}" text-anchor="end">${v>0?"+":""}${v}%</text>`;
+ (narrow?[2,5,10,25]:[2,5,10,15,25,40]).filter(v=>v<vmax).forEach(v=>g+=`<text x="${X(v)}" y="${H-P.b+18}" text-anchor="middle">${v}%</text>`);
+ const vis=new Set(visible().map(r=>r.sym));
+ const order=ROWS.slice().sort((a,b)=>(a.sym===st.sel)-(b.sym===st.sel));
+ const dots=order.map(r=>{const on=vis.has(r.sym),sel=r.sym===st.sel,cx=X(r.vol),cy=Y(r.cagr),right=cx>W-150;
+  return `<g class="dot" data-s="${esc(r.sym)}" style="cursor:pointer;opacity:${on?1:.18}"><circle cx="${cx}" cy="${cy}" r="14" fill="transparent"/>
+  <circle cx="${cx}" cy="${cy}" r="${sel?8:5.5}" fill="var(--h-${r.hz})" stroke="${sel?"var(--ink)":"var(--surface)"}" stroke-width="2"/>
+  ${sel?`<text x="${right?cx-13:cx+13}" y="${cy+4}" text-anchor="${right?"end":"start"}" style="fill:var(--ink);font-weight:700;paint-order:stroke;stroke:var(--surface);stroke-width:4px">${esc(short(r.name))}</text>`:""}</g>`}).join("");
+ svg.innerHTML=`${s}<g class="grid">${g}</g><text x="${P.l+w/2}" y="${H-10}" text-anchor="middle">Swings per year →</text>
+  <text transform="rotate(-90)" x="${-(P.t+h/2)}" y="13" text-anchor="middle">Average return per year</text>
+  <text x="${P.l}" y="${P.t-8}" text-anchor="end" style="font-size:12px">Risk</text>${dots}`;
+ const box=$("scatterBox"),tip=tipper(box);tip.hidden=true;
+ svg.querySelectorAll(".dot").forEach(d=>{const r=ROWS.find(x=>x.sym===d.dataset.s);
+  d.onclick=()=>select(r.sym,false);
+  d.onpointerenter=()=>{const c=d.querySelectorAll("circle")[1].getBoundingClientRect(),b=box.getBoundingClientRect();
+   tip.textContent=`${short(r.name)} · risk ${r.srri} ${RISK[r.srri]} · ${pct(r.cagr)} a year`;
+   tip.style.left=Math.min(b.width-90,Math.max(90,c.left-b.left+c.width/2))+"px";tip.style.top=(c.top-b.top)+"px";tip.hidden=false};
+  d.onpointerleave=()=>tip.hidden=true});
+}
+
+/* detail with crosshair */
+function renderDetail(){
+ const r=ROWS.find(x=>x.sym===st.sel);if(!r)return;
+ const plainTxt=()=>{const end=Math.round(r.p[r.p.length-1]/r.p[0]*100);
+  return `If you had put <b>10 000 kr</b> in 5 years ago, it would be worth about <b>${sek(end*100)}</b> today. At its worst point it was down <b>${Math.abs(r.mdd).toFixed(0)}%</b> from its previous high${r.maxUw>=26?`, and the longest wait to get back to a high was <b>${r.maxUw>=52?(r.maxUw/52).toFixed(1)+" years":Math.round(r.maxUw/4.3)+" months"}</b>`:""}.`};
+ $("detail").innerHTML=`<div class="dhead"><div style="display:grid;gap:6px"><span class="sub">${esc(r.group)} · ${esc(r.sym)} · latest price ${(+r.price).toLocaleString("sv-SE")} ${r.cur}</span><h3>${esc(r.name)}</h3></div>
+   <div style="display:grid;gap:4px;justify-items:start">${riskPill(r.srri)}<span class="sub">${HZ[r.hz]} term · ${HZT[r.hz]}</span></div></div>
+  <p class="plain">${plainTxt()}</p>
+  <div class="two"><div style="display:grid;gap:8px;min-width:0">
+   <div class="chartbox" id="dBox"><svg id="dSvg" role="img" aria-label="Value of 100 kr invested 5 years ago"></svg></div>
+   <span class="sub">Value of 100 kr invested 5 years ago, dividends reinvested. Hover or drag across the chart to see any week.</span>
+   <div class="chartbox" id="ddBox"><svg id="ddSvg" role="img" aria-label="Distance below previous high"></svg></div>
+   <span class="sub">Shaded red: how far below its previous high it was at each point.</span></div>
+   <dl class="kv">
+    <div><dt>Risk level</dt><dd>${r.srri} · ${RISK[r.srri]}</dd></div><div><dt>Swings per year</dt><dd>${r.vol.toFixed(1)}%</dd></div>
+    <div><dt>Avg per year, 5 yrs</dt><dd class="${r.cagr<0?"neg":""}">${pct(r.cagr)}</dd></div><div><dt>Last 12 months</dt><dd class="${r.r1<0?"neg":""}">${pct(r.r1)}</dd></div>
+    <div><dt>Biggest drop</dt><dd>${drop(r.mdd)}</dd></div><div><dt>Worst 12 months</dt><dd class="${r.worst<0?"neg":""}">${pct(r.worst,0)}</dd></div>
+    <div><dt>Reward for risk</dt><dd>${r.sharpe.toFixed(2)}</dd></div><div><dt>Time horizon</dt><dd>${HZ[r.hz]}</dd></div>
+   </dl></div>
+  <a href="#ranking" class="sub" style="color:var(--accent)">↑ Back to the ranking</a>`;
+ drawDetailCharts(r);
+}
+function drawDetailCharts(r){
+ const W=boxW("dBox"),H=Math.round(Math.min(260,Math.max(200,W*.42))),P={l:44,r:12,t:12,b:28},w=W-P.l-P.r,h=H-P.t-P.b,n=r.p.length;
+ const idx=r.p.map(v=>v/r.p[0]*100);
+ let peak=idx[0];const dd=idx.map(v=>{peak=Math.max(peak,v);return (v/peak-1)*100});
+ const mn=Math.min(...idx),mx=Math.max(...idx),X=i=>P.l+i/(n-1)*w,Y=v=>P.t+h-(v-mn)/(mx-mn||1)*h;
+ const step=niceStep((mx-mn)/4);let g="";
+ for(let v=Math.ceil(mn/step)*step;v<=mx;v+=step)g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${P.l-8}" y="${Y(v)+4}" text-anchor="end">${Math.round(v)}</text>`;
+ if(mn<100&&mx>100)g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(100)}" y2="${Y(100)}" style="stroke:var(--muted)" stroke-dasharray="4 4"/>`;
+ let yl="",last="";r.d.forEach((d,i)=>{const y=d.slice(0,4);if(y!==last&&i>4&&i<n-10)yl+=`<text x="${X(i)}" y="${H-6}" text-anchor="middle">${y}</text>`;last=y});
+ const path=idx.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
+ const area=path+`L${X(n-1)},${P.t+h}L${X(0)},${P.t+h}Z`, col=`var(--h-${r.hz})`;
+ const svg=$("dSvg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+ svg.innerHTML=`<g class="grid">${g}</g>${yl}<path d="${area}" fill="${col}" fill-opacity=".1"/><path d="${path}" fill="none" stroke="${col}" stroke-width="2.25" stroke-linejoin="round"/>
+    <circle cx="${X(n-1)}" cy="${Y(idx[n-1])}" r="4" fill="${col}"/>
+    <line id="dX" y1="${P.t}" y2="${P.t+h}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/><circle id="dC" r="5" fill="${col}" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
+    <rect id="dHit" x="${P.l}" y="${P.t}" width="${w}" height="${h}" fill="transparent"/>`;
+ const DH=96,dmin=Math.min(-1,...dd),DY=v=>8+(v/dmin)*(DH-22);
+ const ddp="M"+X(0)+",8"+dd.map((v,i)=>"L"+X(i).toFixed(1)+","+DY(v).toFixed(1)).join("")+"L"+X(n-1)+",8Z";
+ const ds=$("ddSvg");ds.setAttribute("viewBox",`0 0 ${W} ${DH}`);
+ ds.innerHTML=`<line x1="${P.l}" x2="${W-P.r}" y1="8" y2="8" stroke="var(--line-strong)"/><path d="${ddp}" fill="var(--neg)" fill-opacity=".2" stroke="var(--neg)" stroke-width="1"/>
+    <text x="${P.l-8}" y="12" text-anchor="end">0%</text><text x="${P.l-8}" y="${DY(dmin)+4}" text-anchor="end">${drop(dmin)}</text>`;
+ const box=$("dBox"),tip=tipper(box),line=$("dX"),dot=$("dC");tip.hidden=true;
+ const move=e=>{const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+  const i=Math.max(0,Math.min(n-1,Math.round((loc.x-P.l)/w*(n-1))));
+  line.setAttribute("x1",X(i));line.setAttribute("x2",X(i));line.setAttribute("visibility","visible");
+  dot.setAttribute("cx",X(i));dot.setAttribute("cy",Y(idx[i]));dot.setAttribute("visibility","visible");
+  const c=dot.getBoundingClientRect(),b=box.getBoundingClientRect();
+  tip.textContent=`${r.d[i]} · ${idx[i].toFixed(0)} kr`;tip.style.left=Math.min(b.width-70,Math.max(70,c.left-b.left+c.width/2))+"px";tip.style.top=(c.top-b.top)+"px";tip.hidden=false};
+ $("dHit").onpointermove=move;$("dHit").onpointerdown=move;
+ $("dHit").onpointerleave=()=>{tip.hidden=true;line.setAttribute("visibility","hidden");dot.setAttribute("visibility","hidden")};
+}
+
+/* monthly saving: the user sets the stock/bond split; inside each part the max-Sharpe fund mix is picked from the data */
+const ids=["start","monthly","years","sStocks","fee","isk"], key2=i=>i==="sStocks"?"sstocks":i;
+let SLV=null;
+function pickSleeve(groups){
+ const rf=DATA.rates.tbill5yAvg, all=ROWS.filter(r=>groups.includes(r.group)).sort((a,b)=>b.sharpe-a.sharpe);
+ let C=all.filter(r=>r.sharpe>0).slice(0,12);if(!C.length)C=all.slice(0,3);
+ const n=Math.min(...C.map(r=>r.p.length)),T=n-1,K=C.length;
+ const rets=C.map(r=>{const p=r.p.slice(-n),o=[];for(let i=1;i<n;i++)o.push(p[i]/p[i-1]-1);return o});
+ const mean=rets.map(r=>r.reduce((a,b)=>a+b,0)/T), mu=mean.map(m=>m*52*100);
+ const cov=C.map((_,i)=>C.map((_,j)=>{let s=0;for(let t=0;t<T;t++)s+=(rets[i][t]-mean[i])*(rets[j][t]-mean[j]);return s/(T-1)*52*1e4}));
+ const cu=C.map(a=>Math.max(capUnits(a),Math.ceil(UNITS/K))); // same spread limits as My plan, loosened only if too few funds qualify
+ const pen=limitPenalty(C);
+ const score=u=>{const e=pen(u);if(e)return -1000-e;let m=0,v=0;for(let i=0;i<K;i++){if(!u[i])continue;m+=u[i]*mu[i];for(let j=0;j<K;j++)if(u[j])v+=u[i]*u[j]*cov[i][j]}
+  m/=UNITS;v=Math.sqrt(Math.max(0,v))/UNITS;return v<1e-9?0:(m-rf)/v};
+ const rnd=mulberry(11);let best=null,bs=-Infinity;
+ for(let s=0;s<40;s++){
+  const u=Array(K).fill(0);let left=UNITS,g=0;
+  while(left>0&&g++<2000){const i=Math.floor(rnd()*K);if(u[i]<cu[i]){u[i]++;left--}}
+  let sc=score(u),imp=true;
+  while(imp){imp=false;for(let i=0;i<K;i++)for(let j=0;j<K;j++){if(i===j||!u[i]||u[j]>=cu[j])continue;u[i]--;u[j]++;const ns=score(u);if(ns>sc+1e-9){sc=ns;imp=true}else{u[i]++;u[j]--}}}
+  if(sc>bs){bs=sc;best=u.slice()}
+ }
+ return {C,w:best.map(x=>x/UNITS),rets,n,qualified:all.filter(r=>r.sharpe>0).length};
+}
+function initSim(){
+ SLV={s:pickSleeve(["Index fund","Investment company"]),b:pickSleeve(["Bond fund"])};
+ syncInputs();
+ ids.forEach(i=>$(i).addEventListener("input",e=>{st[key2(i)]=Math.max(0,+e.target.value||0);calc()}));
+ calc();
+}
+function syncInputs(){ids.forEach(i=>$(i).value=st[key2(i)])}
+function project(rate){let bal=st.start,paid=st.start;const pts=[{bal,paid}];
+ for(let t=1;t<=st.years;t++){for(let m=0;m<12;m++){bal=bal*(1+rate/12)+st.monthly;paid+=st.monthly}
+  bal-=Math.max(0,bal-300000)*st.isk/100;pts.push({bal,paid})}return pts}
+function calc(){
+ const s=st.sstocks/100,b=1-s,R=DATA.rates,M=st.monthly;
+ $("yearsOut").textContent=st.years+(st.years===1?" year":" years");
+ $("splitOut").textContent=`${st.sstocks}% stocks · ${100-st.sstocks}% bonds`;
+ $("feeOut").textContent=(+st.fee).toFixed(2)+"% a year";$("iskOut").textContent=(+st.isk).toFixed(2)+"% a year";
+ const sp=$("mixbar").children;sp[0].style.flexGrow=st.sstocks;sp[1].style.flexGrow=100-st.sstocks;
+ // combine the two data-picked sleeves at the chosen split
+ const T=Math.min(SLV.s.n,SLV.b.n)-1, tail=a=>a.slice(-T);
+ const hold=[...SLV.s.C.map((a,i)=>({...a,part:"Stocks",w:s*SLV.s.w[i],r:tail(SLV.s.rets[i])})),
+             ...SLV.b.C.map((a,i)=>({...a,part:"Bonds",w:b*SLV.b.w[i],r:tail(SLV.b.rets[i])}))].filter(h=>h.w>0.001)
+            .sort((x,y)=>(x.part>y.part?-1:x.part<y.part?1:0)||y.w-x.w);
+ const r=Array.from({length:T},(_,t)=>hold.reduce((a,h)=>a+h.w*h.r[t],0));
+ const p=[100];r.forEach((x,t)=>p.push(p[t]*(1+x)));
+ const d=SLV.s.C[0].d.slice(-(T+1)), m=metrics({p,d},R.tbill5yAvg), lvl=m.srri;
+ // what this exact plan would have done: monthly deposits into the weekly-rebalanced mix
+ let V=st.start,paid=st.start;for(let t=0;t<T;t++){V*=1+r[t];if(Math.floor((t+1)*12/52)>Math.floor(t*12/52)){V+=M;paid+=M}}
+ // looking ahead: bonds at today's 5-year government yield, stocks at the 7% long-run convention; range from measured swings
+ const cautious=(s*7+b*R.gov5y-st.fee)/100, repeat=(m.cagr-st.fee)/100, band=m.vol/100/Math.sqrt(Math.max(1,st.years));
+ const mid=project(cautious),lo=project(cautious-band),hi=project(cautious+band),end=mid.at(-1),rep=project(repeat).at(-1).bal;
+ $("splitRisk").innerHTML=`This split measured <b>${m.vol.toFixed(1)}%</b> swings a year over 5 years: risk level <b>${lvl} · ${RISK[lvl]}</b>, usually suited to money needed in ${HZT[hzOf(lvl)]}.`;
+ $("hero").innerHTML=`<span class="lbl">${sek(M)} a month for ${st.years} ${st.years===1?"year":"years"} · cautious estimate</span><span class="big">${sek(end.bal)}</span>
+  <span class="rng">Likely range <b>${sek(lo.at(-1).bal)} – ${sek(hi.at(-1).bal)}</b>. If the last 5 years repeated: <b>${sek(rep)}</b>.</span>`;
+ $("kpis").innerHTML=`<div class="kpi"><dt>You pay in</dt><dd>${sek(end.paid)}</dd></div>
+  <div class="kpi"><dt>Risk level of this mix</dt><dd>${riskPill(lvl)}</dd></div>
+  <div class="kpi"><dt>Biggest drop, last 5 years</dt><dd class="neg">${drop(m.mdd)}</dd></div>
+  <div class="kpi"><dt>Worst 12 months at the end</dt><dd class="neg">${pct(m.worst,0)} ≈ ${sek(end.bal*m.worst/100)}</dd></div>`;
+ $("monthHead").textContent=`Each month, put ${sek(M)} into`;
+ $("monthTbl").querySelector("tbody").innerHTML=hold.map(h=>`<tr><td class="full"><div class="nm"><i class="sw" style="background:var(--h-${h.part==="Stocks"?"long":"medium"})"></i>${esc(h.name)}</div><div class="sub">${esc(h.group)}${where(h)} · ticker ${esc(h.sym.replace(/\.[A-Z]{2}$/,""))}${h.cur!=="SEK"?" (trades in "+h.cur+")":""}</div></td>
+   <td data-l="Part">${h.part}</td><td class="n" data-l="Share">${Math.round(h.w*100)}%</td><td class="n" data-l="Each month">${sek(M*h.w)}</td>
+   <td data-l="Risk level">${riskPill(h.srri)}</td><td class="n" data-l="Reward for risk">${h.sharpe.toFixed(2)}</td></tr>`).join("");
+ $("seShare").innerHTML=seLine(hold).replace("limit 20%","limit 20% of each part");
+ $("backtest").innerHTML=`<b>Tested on real prices</b><span class="sub">Saving ${sek(M)} a month into exactly this mix from ${d[0]}${st.start?`, plus ${sek(st.start)} at the start,`:""} would have meant paying in <b>${sek(paid)}</b>. Today it would be worth <b>${sek(V)}</b> (${pct((V/paid-1)*100)}), before fees and tax.</span>`;
+ $("simMethod").innerHTML=`<li><b>Your choice:</b> the split between stocks and bonds. Everything else comes from the data.</li>
+  <li><b>Stock part:</b> index funds and investment companies, Swedish and worldwide, that beat Swedish T-bills over 5 years (${SLV.s.qualified} did, best 12 used).</li>
+  <li><b>Bond part:</b> bond funds that beat T-bills over 5 years (${SLV.b.qualified} did${SLV.b.qualified<3?", so the best 3 overall were used":""}).</li>
+  <li><b>Picking inside each part:</b> the combination with the highest reward for risk (Sharpe ratio), using each pair's co-movement in weekly SEK prices. At most 30% of a part in one fund, 15% in investment companies combined and 20% in Swedish-listed holdings combined, in 5% steps. The per-fund limit is loosened only when too few funds qualify.</li>
+  <li><b>Looking ahead:</b> bonds earn today's 5-year Swedish government yield (${R.gov5y.toFixed(2)}%) and stocks 7% a year, the common long-run figure, minus fees. The range is ±1 standard deviation of this mix's measured swings. ISK tax is taken on the balance above 300 000 kr.</li>`;
+ $("simNote").textContent=`Past results are not a forecast. The last 5 years had no crash as deep as 2008, when global stocks fell about 40% in SEK, so a real bad year could be worse than shown.`;
+ drawChart(lo,mid,hi);save()}
+function fmtK(v){return v>=1e6?(v/1e6).toFixed(v%1e6?1:0)+" M":v>=1e3?Math.round(v/1e3)+" k":"0"}
+function drawChart(lo,mid,hi){const W0=boxW("chartBox"),H0=Math.round(Math.min(300,Math.max(220,W0*.45))),p={l:52,r:14,t:14,b:30},w=W0-p.l-p.r,h=H0-p.t-p.b,n=mid.length-1;
+ const max=Math.max(...hi.map(x=>x.bal))*1.05||1,X=i=>p.l+(n?i/n*w:0),Y=v=>p.t+h-v/max*h,step=niceStep(max/4);let g="";
+ for(let v=0;v<=max;v+=step)g+=`<line x1="${p.l}" x2="${W0-p.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${p.l-8}" y="${Y(v)+4}" text-anchor="end">${fmtK(v)}</text>`;
+ const xl=[...new Set([0,Math.round(n/4),Math.round(n/2),Math.round(3*n/4),n])].map(i=>`<text x="${X(i)}" y="${H0-8}" text-anchor="middle">year ${i}</text>`).join("");
+ const line=(a,k)=>a.map((d,i)=>`${i?"L":"M"}${X(i).toFixed(1)},${Y(d[k]).toFixed(1)}`).join("");
+ const bandP=line(hi,"bal")+lo.slice().reverse().map((d,j)=>`L${X(n-j).toFixed(1)},${Y(d.bal).toFixed(1)}`).join("")+"Z";
+ const svg=$("chart");svg.setAttribute("viewBox",`0 0 ${W0} ${H0}`);
+ svg.innerHTML=`<g class="grid">${g}</g>${xl}<path d="${bandP}" fill="var(--accent-soft)" stroke="var(--accent)" stroke-opacity=".35"/>
+  <path d="${line(mid,"paid")}" fill="none" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1.5"/>
+  <path d="${line(mid,"bal")}" fill="none" stroke="var(--accent)" stroke-width="2.5"/><circle cx="${X(n)}" cy="${Y(mid[n].bal)}" r="4.5" fill="var(--accent)"/>
+  <line id="sX" y1="${p.t}" y2="${p.t+h}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>
+  <rect id="sHit" x="${p.l}" y="${p.t}" width="${w}" height="${h}" fill="transparent"/>`;
+ const box=$("chartBox"),tip=tipper(box),ln=$("sX");tip.hidden=true;
+ const move=e=>{const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+  const i=Math.max(0,Math.min(n,Math.round((loc.x-p.l)/w*n)));ln.setAttribute("x1",X(i));ln.setAttribute("x2",X(i));ln.setAttribute("visibility","visible");
+  const b=box.getBoundingClientRect(),sr=svg.getBoundingClientRect(),sc=sr.width/W0;
+  tip.textContent=`Year ${i}: ${sek(mid[i].bal)} (paid in ${sek(mid[i].paid)})`;
+  tip.style.left=Math.min(b.width-130,Math.max(130,X(i)*sc+sr.left-b.left))+"px";tip.style.top=(Y(mid[i].bal)*sc+sr.top-b.top)+"px";tip.hidden=false};
+ $("sHit").onpointermove=move;$("sHit").onpointerdown=move;
+ $("sHit").onpointerleave=()=>{tip.hidden=true;ln.setAttribute("visibility","hidden")};
+}
+
+/* my plan: rules-based target-risk mix (highest return with swings under the chosen risk level's ceiling), from the same 5-year weekly data */
+const PLAN_HZ={short:{risk:2,yrs:[1,2,2],label:"under 2 years"},medium:{risk:4,yrs:[2,5,4],label:"2–5 years"},long:{risk:5,yrs:[5,30,10],label:"5 years or more"}};
+const volCap=l=>BANDS[l-1]*0.95; // stay just inside the SRRI band's upper edge
+const planGroups=l=>["Bond fund","Index fund"].concat(l>=5?["Investment company"]:[],l>=5&&st.pshares?["Single share"]:[]);
+const UNITS=20; // weights move in 5% steps
+const capUnits=a=>a.group==="Cash"?UNITS:a.group==="Single share"?2:a.group==="Investment company"?3:6; // 10% / 15% / 30% caps
+const IC_TOTAL=3, SE_TOTAL=4; // investment companies 15% combined, Swedish-listed holdings 20% combined
+const isSE=a=>a.cur==="SEK"&&a.group!=="Cash";
+function limitPenalty(A){const ic=A.map(a=>a.group==="Investment company"),se=A.map(isSE);
+ return u=>{let x=0,y=0;for(let i=0;i<u.length;i++){if(ic[i])x+=u[i];if(se[i])y+=u[i]}return Math.max(0,x-IC_TOTAL)+Math.max(0,y-SE_TOTAL)}}
+const seLine=hold=>{const w=hold.filter(isSE).reduce((a,h)=>a+h.w,0);return `Listed in Sweden: <b>${Math.round(w*100)}%</b> of this mix (limit 20%). Sweden is about 1% of the world stock market.`};
+let PLAN=null, planKey="";
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function optimisePlan(){
+ const cap=volCap(st.prisk), rfAvg=DATA.rates.tbill5yAvg, groups=planGroups(st.prisk);
+ const C=ROWS.filter(r=>groups.includes(r.group)&&r.sharpe>0).sort((a,b)=>b.sharpe-a.sharpe).slice(0,16);
+ if(!C.length)return null;
+ const n=Math.min(...C.map(r=>r.p.length)), T=n-1;
+ const rets=C.map(r=>{const p=r.p.slice(-n),o=[];for(let i=1;i<n;i++)o.push(p[i]/p[i-1]-1);return o});
+ rets.push(Array(T).fill(rfAvg/100/52));
+ const A=[...C,{sym:"CASH",name:"Savings account or money-market fund",group:"Cash",srri:1,hz:"short",sharpe:0,cur:"SEK"}], K=A.length;
+ const mean=rets.map(r=>r.reduce((a,b)=>a+b,0)/T), mu=mean.map(m=>m*52*100);
+ const cov=A.map((_,i)=>A.map((_,j)=>{let s=0;for(let t=0;t<T;t++)s+=(rets[i][t]-mean[i])*(rets[j][t]-mean[j]);return s/(T-1)*52*1e4}));
+ const cu=A.map(capUnits);
+ const pen=limitPenalty(A);
+ const score=u=>{const e=pen(u);if(e)return -1000-e;let m=0,v=0;for(let i=0;i<K;i++){if(!u[i])continue;m+=u[i]*mu[i];for(let j=0;j<K;j++)if(u[j])v+=u[i]*u[j]*cov[i][j]}
+  m/=UNITS;v=Math.sqrt(Math.max(0,v))/UNITS;return v>cap?-100-(v-cap):m-0.01*v}; // highest return under the risk ceiling; tiny tie-break toward lower swings
+ const rnd=mulberry(7);let best=null,bs=-Infinity;
+ for(let s=0;s<60;s++){ // random starts, then move 5% at a time while the score improves
+  const u=Array(K).fill(0);let left=UNITS,g=0;
+  while(left>0&&g++<500){const i=Math.floor(rnd()*K);if(u[i]<cu[i]){u[i]++;left--}}
+  u[K-1]+=left;
+  let sc=score(u),imp=true;
+  while(imp){imp=false;for(let i=0;i<K;i++)for(let j=0;j<K;j++){if(i===j||!u[i]||u[j]>=cu[j])continue;u[i]--;u[j]++;const ns=score(u);if(ns>sc+1e-9){sc=ns;imp=true}else{u[i]++;u[j]--}}}
+  if(sc>bs){bs=sc;best=u.slice()}
+ }
+ const hold=A.map((a,i)=>({...a,w:best[i]/UNITS,ri:i})).filter(h=>h.w>0).sort((a,b)=>(a.group==="Cash")-(b.group==="Cash")||b.w-a.w);
+ const p=[100],cash=[100];for(let t=0;t<T;t++){p.push(p[t]*(1+hold.reduce((s,h)=>s+h.w*rets[h.ri][t],0)));cash.push(cash[t]*(1+rets[K-1][t]))}
+ const d=C[0].d.slice(-n), m=metrics({p,d},rfAvg);
+ return {hold,p,cash,d,m,cand:C.length};
+}
+function grow(amount,rate,years){let b=amount;for(let y=0;y<years;y++){b*=1+rate;b-=Math.max(0,b-300000)*st.isk/100}return b}
+function initPlan(){
+ seg2();
+ $("pAmt").value=st.amt;$("pShares").checked=st.pshares;
+ $("pAmt").oninput=e=>{st.amt=Math.max(0,+e.target.value||0);save();renderPlan()};
+ $("pYrs").oninput=e=>{st.pyrs=+e.target.value;save();renderPlan()};
+ $("pRisk").oninput=e=>{st.prisk=+e.target.value;save();renderPlan()};
+ $("pShares").onchange=e=>{st.pshares=e.target.checked;save();renderPlan()};
+ renderPlan();
+}
+function seg2(){const el=$("pHz");el.innerHTML="";Object.entries(PLAN_HZ).forEach(([k,v])=>{const b=document.createElement("button");b.textContent=v.label[0].toUpperCase()+v.label.slice(1);
+ b.setAttribute("aria-pressed",st.phz===k);b.onclick=()=>{st.phz=k;st.pyrs=v.yrs[2];st.prisk=v.risk;el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));save();renderPlan()};el.append(b)})}
+function renderPlan(){
+ if(!PLAN_HZ[st.phz])st.phz="long";
+ const hz=PLAN_HZ[st.phz],y=hz.yrs,L=st.prisk=Math.min(6,Math.max(1,st.prisk||hz.risk));st.pyrs=Math.min(y[1],Math.max(y[0],st.pyrs));
+ Object.assign($("pYrs"),{min:y[0],max:y[1],value:st.pyrs});$("pYrsOut").textContent=st.pyrs+(st.pyrs===1?" year":" years");
+ $("pRisk").value=L;$("pRisk").style.accentColor=`var(--h-${hzOf(L)})`;
+ $("pRiskOut").innerHTML=`${L} · ${RISK[L]}`;
+ $("pRiskSrc").textContent=`Yearly swings kept under ${BANDS[L-1]}%. `+(L>hz.risk?`That's above the usual level ${hz.risk} for money needed in ${hz.label}: a bad year near the end could force you to sell at a loss.`
+  :L<hz.risk?`That's below the usual level ${hz.risk} for ${hz.label}: steadier, but likely less growth.`:`That's the usual level for money needed in ${hz.label}.`);
+ const sharesOk=L>=5;$("pShares").disabled=!sharesOk;$("pShares").parentElement.style.opacity=sharesOk?1:.5;$("pShares").parentElement.title=sharesOk?"":"Individual shares are only used at risk level 5 or higher";
+ const key=L+"|"+(sharesOk&&st.pshares);
+ if(key!==planKey){PLAN=optimisePlan();planKey=key}
+ if(!PLAN){$("report").innerHTML='<div class="empty">No tracked instrument beat T-bills over the last 5 years at this risk level, so the data points to a savings account.</div>';return}
+ const R=DATA.rates,A=st.amt,N=st.pyrs,{hold,m}=PLAN;
+ const expOf=h=>h.group==="Cash"?R.tbill3m:h.group==="Bond fund"?R.gov5y:7;
+ const cautious=hold.reduce((s,h)=>s+h.w*expOf(h),0)/100, band=m.vol/100/Math.sqrt(N);
+ const mid=grow(A,cautious,N),lo=grow(A,cautious-band,N),hi=grow(A,cautious+band,N),rep=grow(A,m.cagr/100,N);
+ const lvl=m.srri, col=h=>`var(--h-${h.hz})`;
+ const opac=(()=>{const seen={};return h=>{seen[h.hz]=(seen[h.hz]||0)+1;return [1,.78,.6,.45,.35][Math.min(4,seen[h.hz]-1)]}})();
+ const segs=hold.map(h=>({h,o:opac(h)}));
+ const role=h=>h.group==="Cash"?"Holds the mix inside its risk limit":h.srri<=4?"Steadies the mix":"Drives growth";
+ $("report").innerHTML=`
+  <div class="hero"><span class="lbl">${sek(A)} for ${N} ${N===1?"year":"years"} · risk level ${L} chosen · cautious estimate</span>
+   <span class="big">${sek(mid)}</span>
+   <span class="rng">Likely range <b>${sek(lo)} – ${sek(hi)}</b>. If the last 5 years repeated: <b>${sek(rep)}</b>.</span></div>
+  <dl class="kpis">
+   <div class="kpi"><dt>Risk level of this mix</dt><dd>${riskPill(lvl)}</dd></div>
+   <div class="kpi"><dt>Average a year, last 5 years</dt><dd class="${m.cagr<0?"neg":""}">${pct(m.cagr)}</dd></div>
+   <div class="kpi"><dt>Biggest drop, last 5 years</dt><dd class="neg">${drop(m.mdd)} ≈ ${sek(A*m.mdd/100)}</dd></div>
+   <div class="kpi"><dt>Reward for risk</dt><dd>${m.sharpe.toFixed(2)}</dd></div></dl>
+  <div style="display:grid;gap:10px"><h3>How the data splits ${sek(A)}</h3>
+   <div class="alloc" aria-hidden="true">${segs.map(({h,o})=>`<span style="flex-grow:${h.w};background:${col(h)};opacity:${o}">${h.w>=.1?Math.round(h.w*100)+"%":""}</span>`).join("")}</div>
+   <p class="sub">${seLine(hold)}</p></div>
+  <div class="tbl-wrap"><table id="planTbl" class="stack"><thead><tr><th>Holding</th><th class="n">Share</th><th class="n">Amount</th><th>Risk level</th><th class="n">Reward for risk</th><th>Role</th></tr></thead><tbody>
+   ${segs.map(({h,o})=>`<tr><td class="full"><div class="nm"><i class="sw" style="background:${col(h)};opacity:${o}"></i>${esc(h.name)}</div><div class="sub">${esc(h.group)}${h.group!=="Cash"?where(h)+" · ticker "+esc(h.sym.replace(/\.[A-Z]{2}$/,""))+(h.cur!=="SEK"?" (trades in "+h.cur+")":""):""}</div></td>
+    <td class="n" data-l="Share">${Math.round(h.w*100)}%</td><td class="n" data-l="Amount">${sek(A*h.w)}</td>
+    <td data-l="Risk level">${riskPill(h.srri)}</td><td class="n" data-l="Reward for risk">${h.group==="Cash"?"–":h.sharpe.toFixed(2)}</td><td data-l="Role">${role(h)}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div style="display:grid;gap:8px"><h3>What this mix would have done over the last 5 years</h3>
+   <div class="chartbox" id="pBox"><svg id="pSvg" role="img" aria-label="Value of the plan over the last 5 years compared with cash"></svg></div>
+   <div class="legend"><span><i style="background:var(--accent)"></i>This mix</span><span><i style="background:var(--muted);height:3px;vertical-align:3px"></i>Cash at the T-bill rate</span></div></div>
+  <div class="callout"><b>Things the data can't tell you</b><span class="sub">This mix is the best fit for the last 5 years, which had no crash as deep as 2008 (global stocks fell about 40% in SEK). A different 5 years would give a different mix. Funds can overlap: Nasdaq 100, S&P 500 and World IT all hold the same big US tech companies, so a mix of them is less spread out than it looks. Keep an emergency buffer in a savings account first. Hold everything in an ISK to avoid tax on gains. All of these can be bought at Avanza or Nordnet by searching for the ticker.</span></div>
+  <details class="more"><summary>How this plan was built</summary><ol class="method">
+   <li><b>Universe:</b> ${planGroups(L).map(g=>g.toLowerCase().replace(/y$/,"ie")+"s").join(", ")}, Swedish and worldwide, that beat Swedish T-bills over 5 years (${PLAN.cand} used, best first), plus cash. Investment companies and individual shares only enter at risk level 5 or higher.</li>
+   <li><b>Goal:</b> the highest average return the whole mix earned, with its yearly swings kept under ${volCap(L).toFixed(1)}%. That holds it at your chosen risk level ${L} or lower. Swings are measured with each pair's co-movement in weekly SEK prices. This is target-risk mean-variance optimisation, the standard method behind risk-profiled model portfolios.</li>
+   <li><b>Spread limits:</b> at most 30% in any one fund and 10% in any single share. Investment companies are limited to 15% combined, because they hold many of the same companies. Swedish-listed holdings are limited to 20% combined, so a home-market category can't dominate the mix. All in 5% steps.</li>
+   <li><b>Cautious estimate:</b> instead of repeating the last 5 years, it assumes cash earns today's T-bill rate (${R.tbill3m.toFixed(2)}%), bond funds today's 5-year government yield (${R.gov5y.toFixed(2)}%) and stocks 7% a year. The range is ±1 standard deviation of the mix's measured swings over ${N} years. ISK tax is deducted on the balance above 300 000 kr. Fund fees are not deducted.</li>
+  </ol></details>
+  <div><button class="btn" id="copyPlan">Copy report as text</button> <span class="sub" id="copyMsg"></span></div>`;
+ drawPlanChart(PLAN);
+ $("copyPlan").onclick=()=>{const txt=[`Sparplan report (${$("asof").textContent})`,`${sek(A)} for ${N} years, needed in ${hz.label}, chosen risk level ${L}`,`Risk level ${lvl} (${RISK[lvl]}). Cautious estimate ${sek(mid)}, range ${sek(lo)}–${sek(hi)}.`,
+  `Last 5 years: ${pct(m.cagr)} a year, biggest drop ${drop(m.mdd)}.`,"",...hold.map(h=>`${Math.round(h.w*100)}%  ${sek(A*h.w)}  ${h.name}${h.group!=="Cash"?" ("+h.sym+")":""}`),"","Based on past data only. Not financial advice."].join("\n");
+  const msg=$("copyMsg");navigator.clipboard.writeText(txt).then(()=>msg.textContent="Copied.",()=>msg.textContent="Copy didn't work here. Select the table text instead.")};
+}
+function drawPlanChart(P){
+ const box=$("pBox");if(!box)return;
+ const W=boxW("pBox"),H=Math.round(Math.min(260,Math.max(200,W*.4))),pd={l:44,r:12,t:12,b:28},w=W-pd.l-pd.r,h=H-pd.t-pd.b,n=P.p.length;
+ const all=P.p.concat(P.cash),mn=Math.min(...all),mx=Math.max(...all),X=i=>pd.l+i/(n-1)*w,Y=v=>pd.t+h-(v-mn)/(mx-mn||1)*h;
+ const step=niceStep((mx-mn)/4);let g="";
+ for(let v=Math.ceil(mn/step)*step;v<=mx;v+=step)g+=`<line x1="${pd.l}" x2="${W-pd.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${pd.l-8}" y="${Y(v)+4}" text-anchor="end">${Math.round(v)}</text>`;
+ let yl="",last="";P.d.forEach((d,i)=>{const y=d.slice(0,4);if(y!==last&&i>4&&i<n-10)yl+=`<text x="${X(i)}" y="${H-6}" text-anchor="middle">${y}</text>`;last=y});
+ const path=a=>a.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
+ const svg=$("pSvg");svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+ svg.innerHTML=`<g class="grid">${g}</g>${yl}<path d="${path(P.cash)}" fill="none" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1.5"/>
+  <path d="${path(P.p)}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/><circle cx="${X(n-1)}" cy="${Y(P.p[n-1])}" r="4.5" fill="var(--accent)"/>
+  <line id="pX" y1="${pd.t}" y2="${pd.t+h}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/><rect id="pHit" x="${pd.l}" y="${pd.t}" width="${w}" height="${h}" fill="transparent"/>`;
+ const tip=tipper(box),ln=$("pX");tip.hidden=true;
+ const move=e=>{const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+  const i=Math.max(0,Math.min(n-1,Math.round((loc.x-pd.l)/w*(n-1))));ln.setAttribute("x1",X(i));ln.setAttribute("x2",X(i));ln.setAttribute("visibility","visible");
+  const b=box.getBoundingClientRect(),sr=svg.getBoundingClientRect(),sc=sr.width/W;
+  tip.textContent=`${P.d[i]} · ${sek(st.amt*P.p[i]/100)}`;tip.style.left=Math.min(b.width-90,Math.max(90,X(i)*sc))+"px";tip.style.top=(Y(P.p[i])*sc)+"px";tip.hidden=false};
+ $("pHit").onpointermove=move;$("pHit").onpointerdown=move;$("pHit").onpointerleave=()=>{tip.hidden=true;ln.setAttribute("visibility","hidden")};
+}
+
+/* charts are drawn at their real width so text stays readable on phones */
+let lastW=0,rq=0;
+new ResizeObserver(()=>{cancelAnimationFrame(rq);rq=requestAnimationFrame(()=>{const w=document.querySelector(".wrap").clientWidth;
+ if(!READY||w===lastW)return;lastW=w;renderScatter();drawDetailCharts(ROWS.find(x=>x.sym===st.sel));calc();if(PLAN)drawPlanChart(PLAN)})}).observe(document.querySelector(".wrap"));
+
+load();
+</script>

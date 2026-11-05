@@ -1,0 +1,107 @@
+# Refreshes the market data every weekday evening and publishes the Sparplan app to GitHub Pages.
+# Also publishes on every change to main (reusing the live data, so it's quick) and on demand from the Actions tab.
+# Needs (see README): Pages set to "GitHub Actions", and optionally the secret SEC_CONTACT for US insider data.
+name: Refresh data and publish
+
+on:
+  schedule:
+    - cron: "15 17 * * 1-5"   # 18:15 Stockholm time in winter, 19:15 in summer (GitHub uses UTC and can start a few minutes late)
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: "Fetch fresh market data (otherwise reuse what's live)"
+        type: boolean
+        default: true
+
+# Least privilege: read the code, publish to Pages, and keep this schedule switched on.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Get market data
+        shell: pwsh
+        env:
+          SEC_CONTACT: ${{ secrets.SEC_CONTACT }}
+          EVENT: ${{ github.event_name }}
+          REFRESH: ${{ inputs.refresh }}
+          LIVE: ${{ steps.pages.outputs.base_url }}
+        run: |
+          $fresh = $env:EVENT -eq 'schedule' -or ($env:EVENT -eq 'workflow_dispatch' -and $env:REFRESH -eq 'true')
+          if (-not $fresh) {
+            try { Invoke-WebRequest "$env:LIVE/market-data.json" -OutFile market-data.json; Write-Host "Reusing the live data."; exit 0 }
+            catch { Write-Host "No live data yet, fetching fresh data." }
+          }
+          ./refresh-data.ps1
+
+      - name: Check the data
+        shell: pwsh
+        run: |
+          $d = Get-Content market-data.json -Raw | ConvertFrom-Json
+          $n = @($d.instruments).Count
+          Write-Host "Data from $($d.generated): $n instruments, policy rate $($d.rates.policy)"
+          # A blocked or failed price source must not replace the live app with an empty one; the last good version stays up.
+          if ($n -lt 30) { Write-Host "::error::Only $n instruments came back (expected about 50). Nothing was published, so the live app keeps the previous data."; exit 1 }
+          if ($null -eq $d.rates.tbill5yAvg) { Write-Host "::error::Riksbank rates are missing. Nothing was published."; exit 1 }
+
+      - name: Security checks
+        run: |
+          ok=1
+          # The Content-Security-Policy forbids inline scripts and inline event handlers.
+          if grep -Pzo '<script(?![^>]*\bsrc=)[^>]*>' app/web/index.html >/dev/null; then echo "::error file=app/web/index.html::Inline <script> found (the CSP blocks it)."; ok=0; fi
+          if grep -nE '\son[a-z]+="' app/web/index.html; then echo "::error file=app/web/index.html::Inline event handler found (the CSP blocks it)."; ok=0; fi
+          if grep -rnE 'eval\(|new Function\(' --include='*.js' app/web ; then echo "::error::eval/new Function found."; ok=0; fi
+          # Never publish a private key or a personal email address.
+          if grep -rlE 'BEGIN (RSA |EC )?PRIVATE KEY|"private_key"' --exclude-dir=.git --exclude-dir=.github . ; then echo "::error::A private key is committed. Remove it and rotate the key."; ok=0; fi
+          if grep -rnE '[A-Za-z0-9._%+-]+@(gmail|hotmail|outlook|yahoo)\.' --exclude-dir=.git --exclude=market-data.json . ; then echo "::error::A personal email address is in the code. Use the SEC_CONTACT secret instead."; ok=0; fi
+          python3 -m json.tool app/web/manifest.webmanifest >/dev/null || { echo "::error::manifest.webmanifest is not valid JSON"; ok=0; }
+          [ "$ok" = 1 ]
+
+      - name: Assemble the site
+        run: |
+          mkdir _site
+          cp -r app/web/. _site/
+          cp market-data.json _site/
+          # New cache name per release, so installed apps pick up the new version
+          sed -i "s/const VERSION=\"sparplan-[^\"]*\"/const VERSION=\"sparplan-${GITHUB_SHA::7}-${GITHUB_RUN_NUMBER}\"/" _site/sw.js
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      # GitHub switches off scheduled workflows in repositories with no commits for 60 days.
+      # Re-enabling this one after each run keeps the daily refresh going.
+      - name: Keep the schedule switched on
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/publish.yml/enable"

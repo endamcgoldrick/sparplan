@@ -1,0 +1,18 @@
+# Your SEC contact email for local refreshes (on GitHub it's the SEC_CONTACT secret)
+.sec-contact
+
+# Market data changes every day: GitHub fetches its own for the website, and this PC's routine keeps a local copy
+market-data.json
+
+# Desktop-app build output (recreated by app/Install-Shortcuts.ps1)
+app/sparplan.ico
+
+# Never commit keys or credentials
+*.pem
+*.key
+*service-account*.json
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+desktop.ini

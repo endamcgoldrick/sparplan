@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="sparplan-token" content="__SPARPLAN_TOKEN__">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1c2026">
+<title>Sparplan</title>
+<link rel="icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=Source+Sans+3:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main class="main" id="main" tabindex="-1">
+    <div class="content">
+      <header class="vhead" id="vhead"></header>
+      <div class="view" id="view"><div class="empty">Loading…</div></div>
+    </div>
+  </main>
+</div>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="core.js"></script>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
