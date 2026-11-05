@@ -7,7 +7,8 @@ $ua = @{ 'User-Agent' = 'Mozilla/5.0' }
 # The SEC requires a contact email in the User-Agent for automated access. It's kept out of the published code:
 # set SEC_CONTACT (a repository secret on GitHub) or put the address in a local .sec-contact file. Empty = skip US insider data.
 $secFile = Join-Path $PSScriptRoot '.sec-contact'
-$secContact = if ($env:SEC_CONTACT) { $env:SEC_CONTACT.Trim() } elseif (Test-Path $secFile) { (Get-Content $secFile -Raw).Trim() } else { '' }
+$secContact = if ($env:SEC_CONTACT) { $env:SEC_CONTACT } elseif (Test-Path $secFile) { Get-Content $secFile -Raw } else { '' }
+$secContact = $secContact -replace '[^\x21-\x7E]', ''  # drop spaces, newlines and invisible marks (a BOM breaks the HTTP header)
 
 # sym, display name, group, type, region of exposure (where the money goes, not where it trades).
 # Rule: index funds = one per major region plus world-wide; shares = roughly the 20 largest listed companies
