@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
+<a class="skip" id="skip" href="#view">Skip to content</a>
 <div class="app">
   <aside class="side" id="side"></aside>
   <main class="main" id="main" tabindex="-1">
@@ -36,6 +37,7 @@
 <div class="scrim" id="scrim" hidden></div>
 <dialog id="dlg" aria-labelledby="dlgTitle"></dialog>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<p class="sr" id="announce" aria-live="polite"></p>
 <script src="core.js"></script>
 <script src="i18n.js"></script>
 <script src="lang/de.js"></script>

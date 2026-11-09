@@ -11,7 +11,7 @@ function t(s,v){
 }
 DICT.sv={
  "Built for saving in Sweden: amounts are in Swedish kronor (SEK), and the accounts and taxes described are Swedish.":"Byggd för sparande i Sverige: beloppen är i svenska kronor (SEK), och kontona och skatterna som beskrivs är svenska.",
- "More":"Mer","Show the result":"Visa resultatet","{n} instruments qualify: stock funds and investment companies.":"{n} värdepapper passar: aktiefonder och investmentbolag.",
+ "Skip to content":"Hoppa till innehållet","More":"Mer","Show the result":"Visa resultatet","{n} instruments qualify: stock funds and investment companies.":"{n} värdepapper passar: aktiefonder och investmentbolag.",
  // navigation and shell
  "Sections":"Avsnitt","Overview":"Översikt","Plan":"Planera","My plan":"Min plan","Monthly saving":"Månadssparande","Saved plans":"Sparade planer",
  "Explore":"Utforska","Ranking":"Rankning","Watchlist":"Bevakningslista","What's moving":"Vad som rör sig","Risk map":"Riskkarta","Learn":"Lär dig",

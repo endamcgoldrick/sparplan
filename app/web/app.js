@@ -119,6 +119,8 @@ function renderSide(){
  $("themeSel").value=st.theme;$("themeSel").onchange=e=>{st.theme=e.target.value;save();applyTheme();render()};
  $("refreshBtn").onclick=async()=>{try{STATUS=await api("refresh");renderStatus();setTimeout(poll,3000)}catch(e){toast(t("Couldn't start the update."))}};
  // phones: the five main sections as a labelled bottom bar; "More" opens the full sidebar as a panel
+ // the router owns the URL hash, so the skip link moves focus itself instead of following #view
+ $("skip").textContent=t("Skip to content");$("skip").onclick=e=>{e.preventDefault();$("main").focus()};
  $("tabbar").setAttribute("aria-label",t("Sections"));
  $("tabbar").innerHTML=[["overview","Overview"],["plan","My plan"],["monthly","Monthly saving"],["ranking","Ranking"],["watchlist","Watchlist"]]
   .map(([k,l])=>`<a href="#/${k}" data-v="${k}">${svgI(k)}<span>${t(l)}</span></a>`).join("")+
@@ -139,8 +141,10 @@ function labelCells(){$("view").querySelectorAll("table").forEach(tb=>{const h=t
 new MutationObserver(()=>{cancelAnimationFrame(labelCells.q);labelCells.q=requestAnimationFrame(labelCells)}).observe($("view"),{childList:true,subtree:true});
 /* planners: while the result is scrolled out of view (stacked layout), a bar at the bottom shows the headline and jumps to it */
 let SUMIO=null;
-function sumbar(result,html){
+function sumbar(result,html,say){
  const b=$("sumbar");if(!b)return;b.innerHTML=html;b.onclick=()=>result.scrollIntoView({block:"start"});
+ // screen readers hear one short line once the inputs settle, not the whole result panel on every slider step
+ clearTimeout(sumbar.t);sumbar.t=setTimeout(()=>{$("announce").textContent=say||""},700);
  // the bottom margin leaves out the strip under the phone tab bar
  if(SUMIO)SUMIO.disconnect();SUMIO=new IntersectionObserver(([e])=>{b.hidden=e.isIntersecting||!html},{rootMargin:"0px 0px -90px 0px"});SUMIO.observe(result);
 }
@@ -208,8 +212,16 @@ function askName(title,def,ok){
   <div class="actions" style="flex-direction:row-reverse;justify-content:flex-start"><button class="btn primary" value="ok">${t("Save")}</button><button class="btn" value="cancel" formnovalidate>${t("Cancel")}</button></div></form>`;
  d.returnValue="";d.onclose=()=>{if(d.returnValue==="ok")ok($("dlgName").value.trim()||def)};d.showModal();$("dlgName").select();
 }
-function seg(el,opts,cur,on){el.innerHTML="";Object.entries(opts).forEach(([k,v])=>{const b=document.createElement("button");b.type="button";b.textContent=v;
- b.setAttribute("aria-pressed",cur===k);b.onclick=()=>{el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));on(k)};el.append(b)})}
+// a single-choice group: screen readers hear "radio, 2 of 4, checked"; arrow keys move and choose, Tab enters once
+function seg(el,opts,cur,on){
+ el.innerHTML="";el.setAttribute("role","radiogroup");
+ const pick=b=>{el.querySelectorAll("button").forEach(x=>{x.setAttribute("aria-checked",x===b);x.tabIndex=x===b?0:-1});on(b.dataset.k)};
+ Object.entries(opts).forEach(([k,v])=>{const b=document.createElement("button");b.type="button";b.textContent=v;b.dataset.k=k;
+  b.setAttribute("role","radio");b.setAttribute("aria-checked",cur===k);b.tabIndex=cur===k?0:-1;b.onclick=()=>pick(b);el.append(b)});
+ if(!el.querySelector('[tabindex="0"]')&&el.firstChild)el.firstChild.tabIndex=0;
+ el.onkeydown=e=>{const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(!d)return;e.preventDefault();
+  const bs=[...el.querySelectorAll("button")],i=bs.indexOf(document.activeElement),n=bs[(i+d+bs.length)%bs.length];n.focus();pick(n)};
+}
 function scaleKey(){
  const cells=[1,2,3,4,5,6,7].map(i=>{const h=hzOf(i);return `<div class="cell" style="--c:var(--h-${h});--soft:var(--h-${h}-soft)">${i}</div>`}).join("");
  const zone=(h,span)=>`<div class="zone" style="grid-column:span ${span};--c:var(--h-${h})"><b>${t(HZ[h])}</b>${tHzT(h)}</div>`;
@@ -428,13 +440,13 @@ function vPlan(){
  return {title:t("My plan"),sub:t("Where the data says to put a lump sum. Enter an amount, when you'll need it and how much risk you'll accept. The app searches mixes of the tracked funds and shares for the one that earned the most over the last 5 years while keeping the whole mix inside your risk level."),
   actions:`<button class="btn primary" id="savePlan">${svgI("bookmark")}${t("Save plan")}</button>`,
   html:`<div class="split"><div class="panel">
-    <div class="field"><label for="pAmt">${t("Amount to invest")} <span>${cur()}</span></label><input type="number" id="pAmt" min="1000" step="1000" inputmode="numeric"></div>
+    <div class="field"><label for="pAmt">${t("Amount to invest")} <span>${cur()}</span></label><input type="number" id="pAmt" min="1000" max="1000000000" step="1000" inputmode="numeric"></div>
     <div class="ctl"><span>${t("When will you need it?")}</span><div class="seg" id="pHz" role="group" aria-label="${t("Time horizon")}"></div></div>
     <div class="field"><label for="pYrs">${t("Years invested")} <span id="pYrsOut"></span></label><input type="range" id="pYrs"></div>
     <div class="field"><label for="pRisk">${t("Risk you're willing to take")} <span id="pRiskOut"></span></label><input type="range" id="pRisk" min="1" max="6" step="1">
      <div class="scalecap" aria-hidden="true"><span>${t("← steadier")}</span><span>${t("more growth, bigger drops →")}</span></div><span class="src" id="pRiskSrc"></span></div>
     <label class="toggle" id="pSharesL"><input type="checkbox" id="pShares"> ${t("Include individual shares")}</label>
-   </div><div class="panel" id="report" aria-live="polite"></div></div>
+   </div><div class="panel" id="report"></div></div>
    <button type="button" class="sumbar" id="sumbar" hidden></button>`,
   after(){
    const p=st.plan;$("pAmt").value=p.amt;$("pShares").checked=p.pshares;
@@ -468,16 +480,16 @@ function renderPlan(){
   <dl class="kpis">
    <div class="kpi"><dt>${t("Risk level of this mix")}</dt><dd>${riskPill(lvl)}</dd></div>
    <div class="kpi"><dt>${t("Average a year, last 5 years")}</dt><dd class="${m.cagr<0?"neg":""}">${pct(m.cagr)}</dd></div>
-   <div class="kpi"><dt>${t("Biggest drop, last 5 years")}</dt><dd class="neg">${drop(m.mdd)} ≈ ${sek(A*m.mdd/100)}</dd></div>
+   <div class="kpi"><dt>${t("Biggest drop, last 5 years")}</dt><dd>${drop(m.mdd)} ≈ ${sek(A*m.mdd/100)}</dd></div>
    <div class="kpi"><dt>${t("Reward for risk")}</dt><dd>${num(m.sharpe,2)}</dd></div></dl>
-  <div style="display:grid;gap:10px"><h3>${t("How the data splits {a}",{a:sek(A)})}</h3>
-   <div class="alloc" aria-hidden="true">${segs.map(({h,o})=>`<span style="flex-grow:${h.w};background:${col(h)};opacity:${o}">${h.w>=.1?Math.round(h.w*100)+"%":""}</span>`).join("")}</div>
+  <div style="display:grid;gap:10px"><h2 class="h3">${t("How the data splits {a}",{a:sek(A)})}</h2>
+   <div class="alloc" aria-hidden="true">${segs.map(({h,o})=>`<span style="flex-grow:${h.w};background:${col(h)};opacity:${o}"></span>`).join("")}</div>
    <p class="sub">${t("Listed in Sweden: <b>{p}</b> of this mix (limit 20%). Sweden is about 1% of the world stock market.",{p:Math.round(seWeight(hold)*100)+"%"})}</p></div>
   <div class="tbl-wrap"><table><thead><tr><th>${t("Holding")}</th><th class="n">${t("Share")}</th><th class="n">${t("Amount")}</th><th>${t("Risk level")}</th><th class="n">${t("Reward for risk")}</th><th>${t("Role")}</th></tr></thead><tbody>
    ${segs.map(({h,o})=>`<tr${h.group!=="Cash"?` class="link" data-href="${fundHref(h.sym)}" tabindex="0"`:""}><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:${col(h)};opacity:${o}"></i>${esc(hname(h))}</div><div class="sub">${esc(t(h.group))}${h.group!=="Cash"?where(h)+" · "+t("ticker")+" "+esc(ticker(h.sym))+(h.cur!=="SEK"?" ("+t("trades in {c}",{c:esc(h.cur)})+")":""):""}</div></td>
     <td class="n">${Math.round(h.w*100)}%</td><td class="n">${sek(A*h.w)}</td><td>${riskPill(h.srri)}</td><td class="n">${h.group==="Cash"?"–":num(h.sharpe,2)}</td><td>${role(h)}</td></tr>`).join("")}
   </tbody></table></div>
-  <div style="display:grid;gap:8px"><h3>${t("What this mix would have done over the last 5 years")}</h3>
+  <div style="display:grid;gap:8px"><h2 class="h3">${t("What this mix would have done over the last 5 years")}</h2>
    <div class="chartbox" id="pBox"><svg id="pSvg" role="img" aria-label="${t("Value of the plan over the last 5 years compared with cash")}"></svg></div>
    <div class="legend"><span><i style="background:var(--accent)"></i>${t("This mix")}</span><span><i style="background:var(--muted);height:3px;vertical-align:3px"></i>${t("Cash at the T-bill rate")}</span></div></div>
   <div class="callout"><b>${t("Things the data can't tell you")}</b><span class="sub">${t("This mix is the best fit for the last 5 years, which had no crash as deep as 2008 (global stocks fell about 40% in SEK). A different 5 years would give a different mix. Funds can overlap: Nasdaq 100, S&P 500 and World IT all hold the same big US tech companies, so a mix of them is less spread out than it looks. Keep an emergency buffer in a savings account first. Hold everything in an ISK to avoid tax on gains. All of these can be bought at Avanza or Nordnet by searching for the ticker.")}</span></div>
@@ -489,7 +501,7 @@ function renderPlan(){
   </ol></details>
   <div><button class="btn" id="copyPlan">${svgI("copy")}${t("Copy report as text")}</button> <span class="sub" id="copyMsg"></span></div>`;
  REDRAW=[()=>drawPlanChart(plan,A)];drawPlanChart(plan,A);
- sumbar($("report").querySelector(".hero"),`<span><b>${sek(mid)}</b> <span class="sub">${t("cautious estimate")}</span></span>${riskPill(lvl)}<span class="sr">${t("Show the result")}</span>`);
+ sumbar($("report").querySelector(".hero"),`<span><b>${sek(mid)}</b> <span class="sub">${t("cautious estimate")}</span></span>${riskPill(lvl)}<span class="sr">${t("Show the result")}</span>`,`${sek(mid)} ${t("cautious estimate")}. ${t("Risk level")} ${lvl}, ${tRisk(lvl)}.`);
  $("copyPlan").onclick=()=>{const g=new Date(DATA.generated);
   const txt=[t("Sparplan report ({d})",{d:g.toLocaleString(loc(),{dateStyle:"medium",timeStyle:"short"})}),t("{a} for {n}, needed in {h}, chosen risk level {l}",{a:sek(A),n:yrs(N),h:hl,l:L}),
    t("Risk level {l} ({w}). Cautious estimate {m}, range {lo}–{hi}.",{l:lvl,w:tRisk(lvl),m:sek(mid),lo:sek(lo),hi:sek(hi)}),t("Last 5 years: {c} a year, biggest drop {d}.",{c:pct(m.cagr),d:drop(m.mdd)}),"",
@@ -521,11 +533,11 @@ function vMonthly(){
  return {title:t("Monthly saving"),sub:t("Choose how much you save each month and how to split it between stocks and bonds. Inside each part, the funds are picked by the data: the combination with the best reward for risk over the last 5 years."),
   actions:`<button class="btn primary" id="saveMon">${svgI("bookmark")}${t("Save plan")}</button>`,
   html:`<div class="split"><div class="panel">
-    <div class="field"><label for="monthly">${t("Monthly saving")} <span>${cur()}</span></label><input type="number" id="monthly" min="0" step="100" inputmode="numeric"></div>
-    <div class="field"><label for="start">${t("Already saved, to invest now")} <span>${cur()}</span></label><input type="number" id="start" min="0" step="1000" inputmode="numeric"></div>
+    <div class="field"><label for="monthly">${t("Monthly saving")} <span>${cur()}</span></label><input type="number" id="monthly" min="0" max="10000000" step="100" inputmode="numeric"></div>
+    <div class="field"><label for="start">${t("Already saved, to invest now")} <span>${cur()}</span></label><input type="number" id="start" min="0" max="1000000000" step="1000" inputmode="numeric"></div>
     <div class="field"><label for="years">${t("Years of saving")} <span id="yearsOut"></span></label><input type="range" id="years" min="1" max="40"></div>
     <div class="mix">
-     <div class="mixbar" id="mixbar" aria-hidden="true"><span style="background:var(--h-long)"></span><span style="background:var(--h-medium)"></span></div>
+     <div class="mixbar" id="mixbar" aria-hidden="true"><span style="background:var(--part-stocks)"></span><span style="background:var(--part-bonds)"></span></div>
      <div class="field"><label for="sStocks"><span style="color:var(--ink)">${t("Stocks and bonds")}</span><span id="splitOut"></span></label><input type="range" id="sStocks" min="0" max="100" step="5">
       <div class="scalecap" aria-hidden="true"><span>${t("← all bonds")}</span><span>${t("all stocks →")}</span></div></div>
      <span class="src" id="splitRisk"></span></div>
@@ -534,12 +546,12 @@ function vMonthly(){
      <div class="field"><label for="isk">${t("ISK flat tax")} <span id="iskOut"></span></label><input type="range" id="isk" min="0" max="2" step="0.05"><span class="src">${t("Charged on the balance above 300 000 kr, the 2026 tax-free level.")}</span></div>
     </div></details>
    </div><div class="panel">
-    <div class="hero" id="hero" aria-live="polite"></div>
+    <div class="hero" id="hero"></div>
     <dl class="kpis" id="kpis"></dl>
-    <div style="display:grid;gap:10px"><h3 id="monthHead"></h3>
+    <div style="display:grid;gap:10px"><h2 class="h3" id="monthHead"></h2>
      <div class="tbl-wrap"><table id="monthTbl"><thead><tr><th>${t("Fund")}</th><th>${t("Part")}</th><th class="n">${t("Share")}</th><th class="n">${t("Each month")}</th><th>${t("Risk level")}</th><th class="n">${t("Reward for risk")}</th></tr></thead><tbody></tbody></table></div><p class="sub" id="seShare"></p></div>
     <div class="callout" id="backtest"></div>
-    <div style="display:grid;gap:8px"><h3>${t("Looking ahead")}</h3>
+    <div style="display:grid;gap:8px"><h2 class="h3">${t("Looking ahead")}</h2>
      <div class="chartbox" id="chartBox"><svg id="chart" role="img" aria-label="${t("Projected balance over time")}"></svg></div>
      <div class="legend"><span><i style="background:var(--accent)"></i>${t("Cautious estimate")}</span><span><i style="background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)"></i>${t("Likely range")}</span><span><i style="background:var(--muted);height:3px;vertical-align:3px"></i>${t("What you paid in")}</span></div></div>
     <details class="more"><summary>${t("How the funds were picked")}</summary><ol class="method" id="simMethod"></ol></details>
@@ -563,10 +575,10 @@ function calcMonthly(){
   <span class="rng">${t("Likely range <b>{lo} – {hi}</b>. If the last 5 years repeated: <b>{rep}</b>.",{lo:sek(lo.at(-1).bal),hi:sek(hi.at(-1).bal),rep:sek(rep)})}</span>`;
  $("kpis").innerHTML=`<div class="kpi"><dt>${t("You pay in")}</dt><dd>${sek(end.paid)}</dd></div>
   <div class="kpi"><dt>${t("Risk level of this mix")}</dt><dd>${riskPill(lvl)}</dd></div>
-  <div class="kpi"><dt>${t("Biggest drop, last 5 years")}</dt><dd class="neg">${drop(m.mdd)}</dd></div>
+  <div class="kpi"><dt>${t("Biggest drop, last 5 years")}</dt><dd>${drop(m.mdd)}</dd></div>
   <div class="kpi"><dt>${t("Worst 12 months at the end")}</dt><dd class="neg">${pct(m.worst,0)} ≈ ${sek(end.bal*m.worst/100)}</dd></div>`;
  $("monthHead").textContent=t("Each month, put {m} into",{m:sek(M)});
- $("monthTbl").tBodies[0].innerHTML=hold.map(h=>`<tr class="link" data-href="${fundHref(h.sym)}" tabindex="0"><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:var(--h-${h.part==="Stocks"?"long":"medium"})"></i>${esc(h.name)}</div><div class="sub">${esc(t(h.group))}${where(h)} · ${t("ticker")} ${esc(ticker(h.sym))}${h.cur!=="SEK"?" ("+t("trades in {c}",{c:esc(h.cur)})+")":""}</div></td>
+ $("monthTbl").tBodies[0].innerHTML=hold.map(h=>`<tr class="link" data-href="${fundHref(h.sym)}" tabindex="0"><td><div class="nm" style="display:flex;align-items:center"><i class="sw" style="background:var(--part-${h.part==="Stocks"?"stocks":"bonds"})"></i>${esc(h.name)}</div><div class="sub">${esc(t(h.group))}${where(h)} · ${t("ticker")} ${esc(ticker(h.sym))}${h.cur!=="SEK"?" ("+t("trades in {c}",{c:esc(h.cur)})+")":""}</div></td>
    <td>${t(h.part)}</td><td class="n">${Math.round(h.w*100)}%</td><td class="n">${sek(M*h.w)}</td><td>${riskPill(h.srri)}</td><td class="n">${num(h.sharpe,2)}</td></tr>`).join("");
  $("seShare").innerHTML=t("Listed in Sweden: <b>{p}</b> of this mix (limit 20% of each part). Sweden is about 1% of the world stock market.",{p:Math.round(seWeight(hold)*100)+"%"});
  $("backtest").innerHTML=`<b>${t("Tested on real prices")}</b><span class="sub">${t("Saving {m} a month into exactly this mix from {d}{x} would have meant paying in <b>{p}</b>. Today it would be worth <b>{v}</b> ({c}), before fees and tax.",{m:sek(M),d:esc(d[0]),x:inp.start?t(", plus {s} at the start,",{s:sek(inp.start)}):"",p:sek(paid),v:sek(V),c:pct((V/paid-1)*100)})}</span>`;
@@ -576,7 +588,7 @@ function calcMonthly(){
   <li>${t("<b>Picking inside each part:</b> the combination with the highest reward for risk (Sharpe ratio), using each pair's co-movement in weekly SEK prices. At most 30% of a part in one fund, 15% in investment companies combined and 20% in Swedish-listed holdings combined, in 5% steps. The per-fund limit is loosened only when too few funds qualify.")}</li>
   <li>${t("<b>Looking ahead:</b> bonds earn today's 5-year Swedish government yield ({g5}) and stocks 7% a year, the common long-run figure, minus fees. The range is ±1 standard deviation of this mix's measured swings. ISK tax is taken on the balance above 300 000 kr.",{g5:pcf(R.gov5y,2)})}</li>`;
  REDRAW=[()=>drawSimChart(lo,mid,hi)];drawSimChart(lo,mid,hi);save();
- sumbar($("hero"),`<span><b>${sek(end.bal)}</b> <span class="sub">${t("cautious estimate")}</span></span>${riskPill(lvl)}<span class="sr">${t("Show the result")}</span>`);
+ sumbar($("hero"),`<span><b>${sek(end.bal)}</b> <span class="sub">${t("cautious estimate")}</span></span>${riskPill(lvl)}<span class="sr">${t("Show the result")}</span>`,`${sek(end.bal)} ${t("cautious estimate")}. ${t("Risk level")} ${lvl}, ${tRisk(lvl)}.`);
 }
 function fmtK(v){return v>=1e6?(v/1e6).toLocaleString(loc(),{maximumFractionDigits:v%1e6?1:0})+" M":v>=1e3?Math.round(v/1e3)+" k":"0"}
 function drawSimChart(lo,mid,hi){const W0=boxW("chartBox"),H0=Math.round(Math.min(300,Math.max(220,W0*.42))),p={l:52,r:14,t:14,b:30},w=W0-p.l-p.r,h=H0-p.t-p.b,n=mid.length-1;
