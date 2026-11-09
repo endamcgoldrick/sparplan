@@ -16,3 +16,6 @@ app/sparplan.ico
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Impeccable design-tool working files (critique snapshots, live server)
+.impeccable/

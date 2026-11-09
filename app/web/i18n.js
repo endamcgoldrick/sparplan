@@ -1,13 +1,16 @@
-/* Svenska/English. The English text is the key; SV holds the Swedish. Placeholders like {n} are filled in by t().
-   A Swedish string that is missing falls back to English and is logged once in the console. */
+/* Translations. The English text is the key; DICT.<code> holds each language (Swedish here, the rest in lang/*.js).
+   Placeholders like {n} are filled in by t(). A missing string falls back to English and is logged once in the console. */
 let LANG="en";
-const MISSING=new Set();
+// code: [name shown in the picker, locale used for numbers, dates and amounts]
+const LANGS={sv:["Svenska","sv-SE"],en:["English","en-GB"],de:["Deutsch","de-DE"],fr:["Français","fr-FR"],es:["Español","es-ES"]};
+const DICT={},MISSING=new Set();
 function t(s,v){
- let o=s;
- if(LANG==="sv"){if(s in SV)o=SV[s];else if(!MISSING.has(s)){MISSING.add(s);console.warn("sv missing:",s)}}
+ let o=s;const d=DICT[LANG];
+ if(d){if(s in d)o=d[s];else if(!MISSING.has(LANG+s)){MISSING.add(LANG+s);console.warn(LANG+" missing:",s)}}
  return v?o.replace(/\{(\w+)\}/g,(m,k)=>k in v?v[k]:m):o;
 }
-const SV={
+DICT.sv={
+ "Built for saving in Sweden: amounts are in Swedish kronor (SEK), and the accounts and taxes described are Swedish.":"Byggd för sparande i Sverige: beloppen är i svenska kronor (SEK), och kontona och skatterna som beskrivs är svenska.",
  // navigation and shell
  "Sections":"Avsnitt","Overview":"Översikt","Plan":"Planera","My plan":"Min plan","Monthly saving":"Månadssparande","Saved plans":"Sparade planer",
  "Explore":"Utforska","Ranking":"Rankning","Watchlist":"Bevakningslista","What's moving":"Vad som rör sig","Risk map":"Riskkarta","Learn":"Lär dig",

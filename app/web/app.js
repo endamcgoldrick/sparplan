@@ -7,14 +7,16 @@ const RISK=["","Very low","Low","Low–medium","Medium","Medium–high","High","
 const HZ={short:"Short term",medium:"Medium term",long:"Long term"}, HZR={short:"1–2",medium:"3–4",long:"5–7"};
 const HZT={short:"under 2 years",medium:"2–5 years",long:"5 years or more"};
 const tRisk=s=>t(RISK[s]), tHzT=h=>t(HZT[h]);
-const loc=()=>LANG==="sv"?"sv-SE":"en-GB";
+const loc=()=>LANGS[LANG][1];
 const num=(v,d=1)=>v.toLocaleString(loc(),{minimumFractionDigits:d,maximumFractionDigits:d});
-const PC=()=>LANG==="sv"?" %":"%";
+const PC=()=>LANG!=="en"?" %":"%";
 const pct=(v,d=1)=>v==null||!isFinite(v)?"–":(v>0?"+":v<0?"−":"")+num(Math.abs(v),d)+PC();
 const pctA=v=>v.toLocaleString(loc())+PC();
 const pcf=(v,d)=>num(v,d)+PC();
 const drop=v=>"−"+num(Math.abs(v),0)+PC();
-const sek=v=>Math.round(v).toLocaleString("sv-SE")+" kr";
+let SEKF=null; // currency formatter for the current language: "1 234 kr" (sv), "SEK 1,234" (en), "1.234 SEK" (de)
+const sek=v=>{if(!SEKF||SEKF.lang!==LANG)SEKF={lang:LANG,f:new Intl.NumberFormat(loc(),{style:"currency",currency:"SEK",maximumFractionDigits:0})};return SEKF.f.format(Math.round(v))};
+const cur=()=>LANG==="sv"?"kr":"SEK";
 const short=n=>n.split(" (")[0];
 const where=r=>r.region?" · "+esc(t(r.region)):"";
 const yrs=n=>t(n===1?"{n} year":"{n} years",{n});
@@ -46,7 +48,7 @@ const starSvg=on=>`<svg viewBox="0 0 24 24" fill="${on?"currentColor":"none"}" s
 
 /* ---------- state ---------- */
 const KEY="sparplan-app";
-const DEF={lang:(navigator.language||"").toLowerCase().startsWith("sv")?"sv":"en",theme:"system",hz:"all",type:"all",sort:"srri",dir:1,all:false,
+const DEF={lang:(navigator.languages||[navigator.language]).map(l=>(l||"").slice(0,2).toLowerCase()).find(l=>LANGS[l])||"en",theme:"system",hz:"all",type:"all",sort:"srri",dir:1,all:false,
  plan:{amt:100000,phz:"long",pyrs:10,prisk:5,pshares:false},mon:{start:0,monthly:2000,years:20,sstocks:70,fee:.2,isk:1.05},
  watch:[],slot:{},plans:[],ins:"us"};
 const st=(()=>{try{const s=JSON.parse(localStorage.getItem(KEY)||"{}");return {...DEF,...s,plan:{...DEF.plan,...s.plan},mon:{...DEF.mon,...s.mon}}}
@@ -107,14 +109,13 @@ function renderSide(){
  <div class="side-foot"><div class="dstat hide-narrow" id="dstat"></div>
   <button class="btn" id="refreshBtn" hidden title="${t("Update data now")}">${svgI("refresh")}<span class="hide-narrow">${t("Update data now")}</span></button>
   <div class="prefs hide-narrow">
-   <div class="row">${t("Language")}<div class="seg sm" id="langSeg" role="group" aria-label="${t("Language")}"><button data-l="sv" aria-pressed="${LANG==="sv"}" lang="sv">Svenska</button><button data-l="en" aria-pressed="${LANG==="en"}" lang="en">English</button></div></div>
+   <div class="row"><label for="langSel">${t("Language")}</label><select class="sm" id="langSel">${Object.entries(LANGS).map(([k,[n]])=>`<option value="${k}" lang="${k}">${n}</option>`).join("")}</select></div>
    <div class="row"><label for="themeSel">${t("Theme")}</label><select class="sm" id="themeSel"><option value="system">${t("System")}</option><option value="light">${t("Light")}</option><option value="dark">${t("Dark")}</option></select></div>
   </div>
-  <div class="prefs-mini"><button class="btn quiet" id="langMini" lang="${LANG==="sv"?"en":"sv"}" aria-label="${LANG==="sv"?"Switch to English":"Byt till svenska"}">${LANG==="sv"?"EN":"SV"}</button>
+  <div class="prefs-mini"><select class="sm" id="langMini" aria-label="${t("Language")}">${Object.keys(LANGS).map(k=>`<option value="${k}" lang="${k}">${k.toUpperCase()}</option>`).join("")}</select>
    <button class="btn quiet" id="themeMini" aria-label="${t("Theme")}: ${t({system:"System",light:"Light",dark:"Dark"}[st.theme])}" title="${t("Theme")}: ${t({system:"System",light:"Light",dark:"Dark"}[st.theme])}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg></button></div></div>`;
- $("langMini").onclick=()=>{st.lang=LANG=LANG==="sv"?"en":"sv";save();renderSide();render()};
+ ["langSel","langMini"].forEach(id=>{$(id).value=LANG;$(id).onchange=e=>{st.lang=LANG=e.target.value;save();renderSide();render()}});
  $("themeMini").onclick=()=>{st.theme={system:"light",light:"dark",dark:"system"}[st.theme];save();applyTheme();renderSide();render()};
- $("langSeg").querySelectorAll("button").forEach(b=>b.onclick=()=>{st.lang=LANG=b.dataset.l;save();renderSide();render()});
  $("themeSel").value=st.theme;$("themeSel").onchange=e=>{st.theme=e.target.value;save();applyTheme();render()};
  $("refreshBtn").onclick=async()=>{try{STATUS=await api("refresh");renderStatus();setTimeout(poll,3000)}catch(e){toast(t("Couldn't start the update."))}};
  markNav();counts();renderStatus();
@@ -180,7 +181,7 @@ let toastT=0;
 function toast(msg,undo){const el=$("toast");el.innerHTML=`<span>${esc(msg)}</span>${undo?`<button>${t("Undo")}</button>`:""}`;el.hidden=false;clearTimeout(toastT);
  if(undo)el.querySelector("button").onclick=()=>{el.hidden=true;undo()};toastT=setTimeout(()=>el.hidden=true,undo?7000:3500)}
 function askName(title,def,ok){
- const d=$("dlg");d.innerHTML=`<form method="dialog"><h2>${title}</h2><div class="field"><label for="dlgName">${t("Name")}</label><input type="text" id="dlgName" maxlength="60" value="${esc(def)}"></div>
+ const d=$("dlg");d.innerHTML=`<form method="dialog"><h2 id="dlgTitle">${title}</h2><div class="field"><label for="dlgName">${t("Name")}</label><input type="text" id="dlgName" maxlength="60" value="${esc(def)}"></div>
   <div class="actions" style="flex-direction:row-reverse;justify-content:flex-start"><button class="btn primary" value="ok">${t("Save")}</button><button class="btn" value="cancel" formnovalidate>${t("Cancel")}</button></div></form>`;
  d.returnValue="";d.onclose=()=>{if(d.returnValue==="ok")ok($("dlgName").value.trim()||def)};d.showModal();$("dlgName").select();
 }
@@ -229,7 +230,8 @@ function vOverview(){
    <span style="text-align:right"><b>${r?sek(r.est):"–"}</b><span class="sub" style="display:block">${t("cautious estimate")}</span></span></a>`}).join("")}</div>`
   :`<p class="sub">${t("Build a plan under My plan or Monthly saving and save it to compare it here. Saved plans are recalculated after every data update.")}</p><div><a class="btn" href="#/plan">${t("Make a plan")}</a></div>`;
  return {title:t("Overview"),sub:t("Your savings options, ranked by real risk. Each fund and share is scored from its actual price history over the last 5 years."),
-  html:`<section class="panel"><div class="sec-head"><h2>${t("How to read risk")}</h2><p class="sub">${t("Risk uses the official EU 1–7 scale, the same number printed on every fund's fact sheet.")}</p></div>
+  html:`${LANG==="sv"?"":`<p class="note">${t("Built for saving in Sweden: amounts are in Swedish kronor (SEK), and the accounts and taxes described are Swedish.")}</p>`}
+  <section class="panel"><div class="sec-head"><h2>${t("How to read risk")}</h2><p class="sub">${t("Risk uses the official EU 1–7 scale, the same number printed on every fund's fact sheet.")}</p></div>
    ${scaleKey()}<div class="scalecap" aria-hidden="true"><span>${t("← barely moves")}</span><span>${t("swings a lot →")}</span></div></section>
   <section><div class="sec-head"><h2>${t("Matched to when you need the money")}</h2><p class="muted">${t("In each group, the best reward for the risk taken comes first (the Sharpe ratio, the industry's standard measure).")}</p></div>
    <div class="glance">${glanceCards()}</div></section>
@@ -337,7 +339,7 @@ function drawDetailCharts(r){
   line.setAttribute("x1",X(i));line.setAttribute("x2",X(i));line.setAttribute("visibility","visible");
   dot.setAttribute("cx",X(i));dot.setAttribute("cy",Y(idx[i]));dot.setAttribute("visibility","visible");
   const c=dot.getBoundingClientRect(),b=box.getBoundingClientRect();
-  tip.textContent=`${r.d[i]} · ${idx[i].toFixed(0)} kr`;tip.style.left=Math.min(b.width-70,Math.max(70,c.left-b.left+c.width/2))+"px";tip.style.top=(c.top-b.top)+"px";tip.hidden=false};
+  tip.textContent=`${r.d[i]} · ${sek(idx[i])}`;tip.style.left=Math.min(b.width-70,Math.max(70,c.left-b.left+c.width/2))+"px";tip.style.top=(c.top-b.top)+"px";tip.hidden=false};
  $("dHit").onpointermove=move;$("dHit").onpointerdown=move;
  $("dHit").onpointerleave=()=>{tip.hidden=true;line.setAttribute("visibility","hidden");dot.setAttribute("visibility","hidden")};
 }
@@ -389,7 +391,7 @@ function drawCompare(list){
   $("cX").setAttribute("x1",x);$("cX").setAttribute("x2",x);$("cX").setAttribute("visibility","visible");
   $("cDots").innerHTML=vals.map(v=>`<circle cx="${X(v.p[0])}" cy="${Y(v.p[1])}" r="4.5" fill="${v.s.c}" stroke="var(--surface)" stroke-width="2"/>`).join("");
   const day=new Date(vals[0].p[0]).toLocaleDateString(loc(),{dateStyle:"medium"});
-  tip.innerHTML=`<span class="h">${day}</span>${vals.map(v=>`<div><span class="sw" style="background:${v.s.c};margin:0"></span><span>${esc(short(v.s.r.name))}</span><span>${Math.round(v.p[1])} kr</span></div>`).join("")}`;
+  tip.innerHTML=`<span class="h">${day}</span>${vals.map(v=>`<div><span class="sw" style="background:${v.s.c};margin:0"></span><span>${esc(short(v.s.r.name))}</span><span>${sek(v.p[1])}</span></div>`).join("")}`;
   const sc=svg.getBoundingClientRect().width/W;tip.style.left=x*sc+"px";tip.style.top=(P.t+h/2)*sc+"px";tip.classList.toggle("flip",x>W/2);tip.hidden=false};
  $("cHit").onpointermove=move;$("cHit").onpointerdown=move;
  $("cHit").onpointerleave=()=>{tip.hidden=true;$("cX").setAttribute("visibility","hidden");$("cDots").innerHTML=""};
@@ -400,7 +402,7 @@ function vPlan(){
  return {title:t("My plan"),sub:t("Where the data says to put a lump sum. Enter an amount, when you'll need it and how much risk you'll accept. The app searches mixes of the tracked funds and shares for the one that earned the most over the last 5 years while keeping the whole mix inside your risk level."),
   actions:`<button class="btn primary" id="savePlan">${svgI("bookmark")}${t("Save plan")}</button>`,
   html:`<div class="split"><div class="panel">
-    <div class="field"><label for="pAmt">${t("Amount to invest")} <span>kr</span></label><input type="number" id="pAmt" min="1000" step="1000" inputmode="numeric"></div>
+    <div class="field"><label for="pAmt">${t("Amount to invest")} <span>${cur()}</span></label><input type="number" id="pAmt" min="1000" step="1000" inputmode="numeric"></div>
     <div class="ctl"><span>${t("When will you need it?")}</span><div class="seg" id="pHz" role="group" aria-label="${t("Time horizon")}"></div></div>
     <div class="field"><label for="pYrs">${t("Years invested")} <span id="pYrsOut"></span></label><input type="range" id="pYrs"></div>
     <div class="field"><label for="pRisk">${t("Risk you're willing to take")} <span id="pRiskOut"></span></label><input type="range" id="pRisk" min="1" max="6" step="1">
@@ -491,8 +493,8 @@ function vMonthly(){
  return {title:t("Monthly saving"),sub:t("Choose how much you save each month and how to split it between stocks and bonds. Inside each part, the funds are picked by the data: the combination with the best reward for risk over the last 5 years."),
   actions:`<button class="btn primary" id="saveMon">${svgI("bookmark")}${t("Save plan")}</button>`,
   html:`<div class="split"><div class="panel">
-    <div class="field"><label for="monthly">${t("Monthly saving")} <span>kr</span></label><input type="number" id="monthly" min="0" step="100" inputmode="numeric"></div>
-    <div class="field"><label for="start">${t("Already saved, to invest now")} <span>kr</span></label><input type="number" id="start" min="0" step="1000" inputmode="numeric"></div>
+    <div class="field"><label for="monthly">${t("Monthly saving")} <span>${cur()}</span></label><input type="number" id="monthly" min="0" step="100" inputmode="numeric"></div>
+    <div class="field"><label for="start">${t("Already saved, to invest now")} <span>${cur()}</span></label><input type="number" id="start" min="0" step="1000" inputmode="numeric"></div>
     <div class="field"><label for="years">${t("Years of saving")} <span id="yearsOut"></span></label><input type="range" id="years" min="1" max="40"></div>
     <div class="mix">
      <div class="mixbar" id="mixbar" aria-hidden="true"><span style="background:var(--h-long)"></span><span style="background:var(--h-medium)"></span></div>
@@ -618,7 +620,7 @@ function vMoving(){
   after:renderInsiders};
 }
 function renderInsiders(){
- const mkr=v=>{const a=Math.abs(v);return (v<0?"−":"")+(a>=1e6?(a/1e6).toLocaleString(loc(),{maximumFractionDigits:a>=1e8?0:1})+" M kr":sek(a))};
+ const mkr=v=>{const a=Math.abs(v);return (v<0?"−":"")+(a>=1e6?(a/1e6).toLocaleString(loc(),{maximumFractionDigits:a>=1e8?0:1})+" M "+cur():sek(a))};
  const US=DATA.usInsiders&&DATA.usInsiders.companies&&DATA.usInsiders.companies.length?DATA.usInsiders:null, SE=DATA.insiders&&DATA.insiders.buys?DATA.insiders:null;
  const row=(name,sub,b,href)=>`<tr${href?` class="link" data-href="${href}" tabindex="0"`:""}><td><div class="nm">${esc(name)}</div>${sub?`<div class="sub">${sub}</div>`:""}</td>
   <td class="n ${b.net<0?"neg":""}">${mkr(b.net)}</td><td class="n">${+b.nb||0}${b.ns?` <span class="sub">(${t("{n} selling",{n:+b.ns||0})})</span>`:""}</td></tr>`;
