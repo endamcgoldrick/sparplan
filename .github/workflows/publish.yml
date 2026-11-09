@@ -86,7 +86,8 @@ jobs:
           if grep -nE '\son[a-z]+="' app/web/index.html; then echo "::error file=app/web/index.html::Inline event handler found (the CSP blocks it)."; ok=0; fi
           if grep -rnE 'eval\(|new Function\(' --include='*.js' app/web ; then echo "::error::eval/new Function found."; ok=0; fi
           # Everything is self-hosted: no fonts, scripts or styles from other sites (privacy, and nothing outside can change the app).
-          if grep -rnE '(src|href)="https?://|url\(["'"'"']?https?://|@import' app/web --include='*.html' --include='*.css' ; then echo "::error::The app loads something from another site. Self-host it instead."; ok=0; fi
+          # The canonical link only names this site's own address; browsers don't fetch it.
+          if grep -rnE '(src|href)="https?://|url\(["'"'"']?https?://|@import' app/web --include='*.html' --include='*.css' | grep -v 'rel="canonical"' ; then echo "::error::The app loads something from another site. Self-host it instead."; ok=0; fi
           # Never publish a private key or a personal email address.
           if grep -rlE 'BEGIN (RSA |EC )?PRIVATE KEY|"private_key"' --exclude-dir=.git --exclude-dir=.github . ; then echo "::error::A private key is committed. Remove it and rotate the key."; ok=0; fi
           if grep -rnE '[A-Za-z0-9._%+-]+@(gmail|hotmail|outlook|yahoo)\.' --exclude-dir=.git --exclude=market-data.json . ; then echo "::error::A personal email address is in the code. Use the SEC_CONTACT secret instead."; ok=0; fi
