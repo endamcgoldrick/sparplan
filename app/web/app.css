@@ -182,7 +182,9 @@ tbody tr:last-child td{border-bottom:0}
 tr.link{cursor:pointer}
 tr.link:hover{background:var(--sunk)}
 .nm{font-weight:600;line-height:1.3;min-width:190px}
-td.c-plan{min-width:300px}
+td.c-plan{min-width:220px}
+table.wrap-head th{white-space:normal}
+td.n .sub{white-space:normal;min-width:150px}
 .sbar{display:inline-block;width:44px;height:6px;border-radius:3px;background:var(--line);vertical-align:middle;margin-left:8px;position:relative;overflow:hidden}
 .sbar i{position:absolute;inset:0 auto 0 0;background:var(--ink);opacity:.55;border-radius:3px}
 .groupRow td{background:var(--h-soft);font-weight:700;font-size:.9rem;padding:8px 14px}
@@ -256,4 +258,62 @@ dialog .actions{display:flex;justify-content:flex-end;gap:8px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:10px;padding:10px 12px 10px 16px;display:flex;gap:14px;align-items:center;font-weight:600;font-size:.92rem;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:20}
 .toast button{border:0;background:none;color:var(--bg);text-decoration:underline;text-underline-offset:3px;font-weight:700;cursor:pointer;padding:4px 6px}
 footer.method{font-size:.86rem;color:var(--muted);display:grid;gap:6px;border-top:1px solid var(--line);padding-top:18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* planners in the stacked layout: while the result is scrolled away, this bar shows the headline and jumps back to it */
+.sumbar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:15;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);min-height:48px;padding:8px 16px;
+  border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);color:var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.18);cursor:pointer;text-align:left}
+.sumbar b{font-family:var(--serif);font-size:1.25rem}
+@media (min-width:1061px){.sumbar{display:none}}
+.tabbar,.scrim{display:none}
+
+/* touch screens: every control at least 44px */
+@media (pointer:coarse){
+  .seg button,.btn,select,select.sm,.toggle,.nav a{min-height:44px}
+  .star{width:44px;height:44px}
+}
+
+/* phones: bottom tab bar, sidebar as a slide-in panel, tables as labelled cards */
+@media (max-width:640px){
+  .app{grid-template-columns:minmax(0,1fr);height:100dvh}
+  .side{position:fixed;z-index:40;inset:0 auto 0 0;width:min(300px,86vw);transform:translateX(-105%);transition:transform .25s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 40px rgba(0,0,0,.3)}
+  body.menu-open .side{transform:none}
+  .scrim{display:block;position:fixed;inset:0;z-index:35;background:rgba(10,12,15,.45)}
+  .brand{padding:20px 20px 14px;justify-content:flex-start}
+  .brand span,.nav a span,.nav .count,.side-foot .btn span.hide-narrow{display:inline}
+  .nav .grp{display:block}
+  .nav a{justify-content:flex-start;padding:8px 12px;min-height:44px}
+  .side-foot{padding:14px 16px 18px}
+  .side .dstat.hide-narrow,.side .prefs.hide-narrow{display:grid}
+  .prefs-mini{display:none}
+  .tabbar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--side);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar a,.tabbar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;padding:6px 2px;border:0;background:none;color:var(--muted);font:600 .7rem/1.15 var(--sans);text-decoration:none;cursor:pointer;min-width:0}
+  .tabbar span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabbar svg{width:22px;height:22px}
+  .tabbar a[aria-current="page"]{color:var(--accent)}
+  .content{padding:20px 16px calc(96px + env(safe-area-inset-bottom))}
+  .sumbar{bottom:calc(70px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .hero .big{font-size:2.3rem}
+  .seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .seg button{flex:none}
+  .tbl-wrap{overflow:visible;max-height:none!important}
+  .view table thead{display:none}
+  .view table,.view table tbody{display:block}
+  .view table tbody tr{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .view table tbody tr:last-child{border-bottom:0}
+  .view table td{display:block;padding:0;border:0;min-width:0}
+  .view table td[data-l]::before{content:attr(data-l);display:block;font-size:.76rem;font-weight:600;color:var(--muted);margin-bottom:1px}
+  .view table td:has(.nm),.view table td:has(> .risk),.view table td:has(.rowact),#accounts td{grid-column:1/-1}
+  .view table td:has(.nm)::before,.view table td:has(> .risk)::before,.view table td:has(.rowact)::before,.view table td.c-star::before{content:none}
+  .view table td:has(.nm){order:-1;padding-right:44px}
+  .view table td.c-star{position:absolute;top:6px;right:6px;width:auto}
+  .view table td:has(> svg){display:none}
+  .view table td.n{text-align:left}
+  .view table tr.groupRow{display:block;padding:0}
+  .view table tr.groupRow td{padding:8px 16px}
+  .nm,td.c-plan{min-width:0}
+  .rowact{justify-content:flex-start}
+  .sbar{display:none}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

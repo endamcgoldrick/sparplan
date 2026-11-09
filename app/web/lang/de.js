@@ -26,6 +26,7 @@ DICT.de={
  // overview
  "Your savings options, ranked by real risk. Each fund and share is scored from its actual price history over the last 5 years.":"Ihre Sparmöglichkeiten, geordnet nach tatsächlichem Risiko. Jeder Fonds und jede Aktie wird anhand der echten Kursentwicklung der letzten 5 Jahre bewertet.",
  "Built for saving in Sweden: amounts are in Swedish kronor (SEK), and the accounts and taxes described are Swedish.":"Für das Sparen in Schweden gemacht: Beträge sind in Schwedischen Kronen (SEK), und die beschriebenen Konten und Steuern sind schwedisch.",
+ "More":"Mehr","Show the result":"Ergebnis anzeigen","{n} instruments qualify: stock funds and investment companies.":"{n} Wertpapiere kommen infrage: Aktienfonds und Beteiligungsgesellschaften.",
  "How to read risk":"So lesen Sie das Risiko","Risk uses the official EU 1–7 scale, the same number printed on every fund's fact sheet.":"Das Risiko folgt der offiziellen EU-Skala 1–7, derselben Zahl wie im Basisinformationsblatt jedes Fonds.",
  "Risk scale 1 to 7. Levels 1 and 2 suit money needed within 2 years, 3 and 4 suit 2 to 5 years, 5 to 7 suit 5 years or more.":"Risikoskala 1 bis 7. Stufe 1 und 2 passen für Geld, das Sie innerhalb von 2 Jahren brauchen, 3 und 4 für 2 bis 5 Jahre, 5 bis 7 für 5 Jahre oder mehr.",
  "← barely moves":"← bewegt sich kaum","swings a lot →":"schwankt stark →",

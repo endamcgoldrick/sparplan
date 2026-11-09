@@ -50,7 +50,7 @@ const starSvg=on=>`<svg viewBox="0 0 24 24" fill="${on?"currentColor":"none"}" s
 const KEY="sparplan-app";
 const DEF={lang:(navigator.languages||[navigator.language]).map(l=>(l||"").slice(0,2).toLowerCase()).find(l=>LANGS[l])||"en",theme:"system",hz:"all",type:"all",sort:"srri",dir:1,all:false,
  plan:{amt:100000,phz:"long",pyrs:10,prisk:5,pshares:false},mon:{start:0,monthly:2000,years:20,sstocks:70,fee:.2,isk:1.05},
- watch:[],slot:{},plans:[],ins:"us"};
+ watch:[],slot:{},plans:[],ins:"us",ovShares:false};
 const st=(()=>{try{const s=JSON.parse(localStorage.getItem(KEY)||"{}");return {...DEF,...s,plan:{...DEF.plan,...s.plan},mon:{...DEF.mon,...s.mon}}}
  catch(e){return JSON.parse(JSON.stringify(DEF))}})();
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
@@ -118,9 +118,32 @@ function renderSide(){
  $("themeMini").onclick=()=>{st.theme={system:"light",light:"dark",dark:"system"}[st.theme];save();applyTheme();renderSide();render()};
  $("themeSel").value=st.theme;$("themeSel").onchange=e=>{st.theme=e.target.value;save();applyTheme();render()};
  $("refreshBtn").onclick=async()=>{try{STATUS=await api("refresh");renderStatus();setTimeout(poll,3000)}catch(e){toast(t("Couldn't start the update."))}};
+ // phones: the five main sections as a labelled bottom bar; "More" opens the full sidebar as a panel
+ $("tabbar").setAttribute("aria-label",t("Sections"));
+ $("tabbar").innerHTML=[["overview","Overview"],["plan","My plan"],["monthly","Monthly saving"],["ranking","Ranking"],["watchlist","Watchlist"]]
+  .map(([k,l])=>`<a href="#/${k}" data-v="${k}">${svgI(k)}<span>${t(l)}</span></a>`).join("")+
+  `<button type="button" id="moreBtn" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>${t("More")}</span></button>`;
+ $("moreBtn").onclick=()=>menu(!document.body.classList.contains("menu-open"));
  markNav();counts();renderStatus();
 }
-function markNav(){const v=CUR.v==="fund"?null:CUR.v;document.querySelectorAll(".nav a").forEach(a=>a.dataset.v===v?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"))}
+function menu(open){
+ document.body.classList.toggle("menu-open",open);$("scrim").hidden=!open;$("moreBtn").setAttribute("aria-expanded",open);
+ if(open)$("side").querySelector(".nav a").focus();
+}
+$("scrim").onclick=()=>menu(false);
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("menu-open")){menu(false);$("moreBtn").focus()}});
+function markNav(){const v=CUR.v==="fund"?null:CUR.v;document.querySelectorAll(".nav a,.tabbar a").forEach(a=>a.dataset.v===v?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"))}
+/* phones show tables as cards; each cell gets its column name from the table header */
+function labelCells(){$("view").querySelectorAll("table").forEach(tb=>{const h=tb.tHead?[...tb.tHead.rows[0].cells].map(c=>c.textContent.trim()):[];
+ [...tb.tBodies].forEach(b=>[...b.rows].forEach(tr=>{if(tr.cells.length===h.length)[...tr.cells].forEach((c,i)=>{if(h[i])c.dataset.l=h[i]})}))})}
+new MutationObserver(()=>{cancelAnimationFrame(labelCells.q);labelCells.q=requestAnimationFrame(labelCells)}).observe($("view"),{childList:true,subtree:true});
+/* planners: while the result is scrolled out of view (stacked layout), a bar at the bottom shows the headline and jumps to it */
+let SUMIO=null;
+function sumbar(result,html){
+ const b=$("sumbar");if(!b)return;b.innerHTML=html;b.onclick=()=>result.scrollIntoView({block:"start"});
+ // the bottom margin leaves out the strip under the phone tab bar
+ if(SUMIO)SUMIO.disconnect();SUMIO=new IntersectionObserver(([e])=>{b.hidden=e.isIntersecting||!html},{rootMargin:"0px 0px -90px 0px"});SUMIO.observe(result);
+}
 function counts(){const w=$("cnt-watchlist"),s=$("cnt-saved");if(w)w.textContent=watched().length||"";if(s)s.textContent=st.plans.length||""}
 function renderStatus(){
  const el=$("dstat");if(!el)return;
@@ -137,10 +160,10 @@ let CUR={v:"overview",arg:""},REDRAW=[];
 function route(){
  const [v,...rest]=location.hash.replace(/^#\/?/,"").split("/");
  CUR={v:VIEWS[v]?v:"overview",arg:decodeURIComponent(rest.join("/"))};
- render();$("main").scrollTop=0;
+ menu(false);render();$("main").scrollTop=0;
 }
 function render(){
- markNav();REDRAW=[];
+ markNav();REDRAW=[];if(SUMIO){SUMIO.disconnect();SUMIO=null}
  if(!DATA){$("vhead").innerHTML=`<div class="t"><h1>Sparplan</h1></div>`;
   $("view").innerHTML=LOADERR?`<div class="blank"><p>${t("The market data did not load.")} ${SERVED?t("Use “Update data now” in the sidebar to fetch it."):t("Check your internet connection, then reload the app.")}</p></div>`:`<div class="empty">${t("Loading data…")}</div>`;return}
  const o=VIEWS[CUR.v](CUR.arg);
@@ -208,7 +231,8 @@ function glanceCards(){
    <span><span class="pn">${esc(short(r.name))}</span><span class="ps">${esc(t(r.group))}${where(r)}</span>
    <span class="ps">${t("Risk")} ${r.srri} · ${tRisk(r.srri)} · ${t("biggest drop")} ${drop(r.mdd)}</span></span>
    <span class="pv"><b class="${r.cagr<0?"neg":""}">${pct(r.cagr)}</b><span>${t("a year")}</span></span></a>`).join("");
- const by=h=>ROWS.filter(r=>r.hz===h).sort((a,b)=>b.sharpe-a.sharpe);
+ // funds first, as in My plan: single shares only when the visitor asks for them
+ const by=h=>ROWS.filter(r=>r.hz===h&&(st.ovShares||r.group!=="Single share")).sort((a,b)=>b.sharpe-a.sharpe);
  const sh=by("short"),med=by("medium"),lng=by("long");
  const card=(h,title,desc,body)=>{const w=tHzT(h);return `<article class="hcard" style="--h:var(--h-${h})"><div class="top"><span class="when">${w[0].toUpperCase()+w.slice(1)} · ${t("risk")} ${HZR[h]}</span><h3>${title}</h3><p class="sub">${desc}</p></div><div class="body">${body}</div></article>`};
  return card("short",t("Short term: keep it safe"),sh.length?t("{n} tracked funds qualify.",{n:sh.length}):t("None of the tracked funds swung little enough in SEK, so cash-like options fit here."),
@@ -217,7 +241,8 @@ function glanceCards(){
    ${sh.length?pickList(sh.slice(0,3)):""}
    <p class="note">${t("Savings accounts are covered by the state deposit guarantee up to 1 050 000 kr per bank.")}</p>`)+
   card("medium",t("Medium term: steady growth"),t("{n} instruments qualify, mostly bond funds.",{n:med.length}),`<span class="lbl">${t("Best reward for risk first")}</span><div>${pickList(med.slice(0,4))}</div>`)+
-  card("long",t("Long term: growth, with bumps"),t("{n} instruments qualify: stock funds and shares.",{n:lng.length}),`<span class="lbl">${t("Best reward for risk first")}</span><div>${pickList(lng.slice(0,5))}</div>`);
+  card("long",t("Long term: growth, with bumps"),st.ovShares?t("{n} instruments qualify: stock funds and shares.",{n:lng.length}):t("{n} instruments qualify: stock funds and investment companies.",{n:lng.length}),
+   `<label class="toggle"><input type="checkbox" id="ovShares"${st.ovShares?" checked":""}> ${t("Include individual shares")}</label><span class="lbl">${t("Best reward for risk first")}</span><div>${pickList(lng.slice(0,5))}</div>`);
 }
 
 function vOverview(){
@@ -236,7 +261,8 @@ function vOverview(){
   <section><div class="sec-head"><h2>${t("Matched to when you need the money")}</h2><p class="muted">${t("In each group, the best reward for the risk taken comes first (the Sharpe ratio, the industry's standard measure).")}</p></div>
    <div class="glance">${glanceCards()}</div></section>
   <div class="cols"><section class="panel"><div class="sec-head" style="grid-template-columns:1fr auto;align-items:baseline"><h2>${t("Watchlist")}</h2>${W.length?`<a href="#/watchlist">${t("Compare all")}</a>`:""}</div>${watchBox}</section>
-   <section class="panel"><div class="sec-head" style="grid-template-columns:1fr auto;align-items:baseline"><h2>${t("Saved plans")}</h2>${P.length?`<a href="#/saved">${t("See all")}</a>`:""}</div>${savedBox}</section></div>`};
+   <section class="panel"><div class="sec-head" style="grid-template-columns:1fr auto;align-items:baseline"><h2>${t("Saved plans")}</h2>${P.length?`<a href="#/saved">${t("See all")}</a>`:""}</div>${savedBox}</section></div>`,
+  after(){$("ovShares").onchange=e=>{st.ovShares=e.target.checked;save();render()}}};
 }
 
 /* ranking */
@@ -408,7 +434,8 @@ function vPlan(){
     <div class="field"><label for="pRisk">${t("Risk you're willing to take")} <span id="pRiskOut"></span></label><input type="range" id="pRisk" min="1" max="6" step="1">
      <div class="scalecap" aria-hidden="true"><span>${t("← steadier")}</span><span>${t("more growth, bigger drops →")}</span></div><span class="src" id="pRiskSrc"></span></div>
     <label class="toggle" id="pSharesL"><input type="checkbox" id="pShares"> ${t("Include individual shares")}</label>
-   </div><div class="panel" id="report" aria-live="polite"></div></div>`,
+   </div><div class="panel" id="report" aria-live="polite"></div></div>
+   <button type="button" class="sumbar" id="sumbar" hidden></button>`,
   after(){
    const p=st.plan;$("pAmt").value=p.amt;$("pShares").checked=p.pshares;
    seg($("pHz"),Object.fromEntries(Object.keys(PLAN_HZ).map(k=>{const w=tHzT(k);return [k,w[0].toUpperCase()+w.slice(1)]})),p.phz,k=>{p.phz=k;p.pyrs=PLAN_HZ[k].yrs[2];p.prisk=PLAN_HZ[k].risk;save();renderPlan()});
@@ -428,7 +455,7 @@ function renderPlan(){
  $("pRiskSrc").textContent=t("Yearly swings kept under {b}.",{b:pctA(BANDS[L-1])})+" "+(L>hz.risk?t("That's above the usual level {u} for money needed in {h}: a bad year near the end could force you to sell at a loss.",{u:hz.risk,h:hl})
   :L<hz.risk?t("That's below the usual level {u} for {h}: steadier, but likely less growth.",{u:hz.risk,h:hl}):t("That's the usual level for money needed in {h}.",{h:hl}));
  $("pShares").disabled=!o.sharesOk;$("pSharesL").style.opacity=o.sharesOk?1:.5;$("pSharesL").title=o.sharesOk?"":t("Individual shares are only used at risk level 5 or higher");
- if(!res.plan){$("report").innerHTML=`<div class="empty">${t("No tracked instrument beat T-bills over the last 5 years at this risk level, so the data points to a savings account.")}</div>`;return}
+ if(!res.plan){$("report").innerHTML=`<div class="empty">${t("No tracked instrument beat T-bills over the last 5 years at this risk level, so the data points to a savings account.")}</div>`;sumbar($("report"),"");return}
  const {plan,A,N,mid,lo,hi,rep,lvl,m}=res,hold=plan.hold,col=h=>`var(--h-${h.hz})`;
  const opac=(()=>{const seen={};return h=>{seen[h.hz]=(seen[h.hz]||0)+1;return [1,.78,.6,.45,.35][Math.min(4,seen[h.hz]-1)]}})();
  const segs=hold.map(h=>({h,o:opac(h)}));
@@ -462,6 +489,7 @@ function renderPlan(){
   </ol></details>
   <div><button class="btn" id="copyPlan">${svgI("copy")}${t("Copy report as text")}</button> <span class="sub" id="copyMsg"></span></div>`;
  REDRAW=[()=>drawPlanChart(plan,A)];drawPlanChart(plan,A);
+ sumbar($("report").querySelector(".hero"),`<span><b>${sek(mid)}</b> <span class="sub">${t("cautious estimate")}</span></span>${riskPill(lvl)}<span class="sr">${t("Show the result")}</span>`);
  $("copyPlan").onclick=()=>{const g=new Date(DATA.generated);
   const txt=[t("Sparplan report ({d})",{d:g.toLocaleString(loc(),{dateStyle:"medium",timeStyle:"short"})}),t("{a} for {n}, needed in {h}, chosen risk level {l}",{a:sek(A),n:yrs(N),h:hl,l:L}),
    t("Risk level {l} ({w}). Cautious estimate {m}, range {lo}–{hi}.",{l:lvl,w:tRisk(lvl),m:sek(mid),lo:sek(lo),hi:sek(hi)}),t("Last 5 years: {c} a year, biggest drop {d}.",{c:pct(m.cagr),d:drop(m.mdd)}),"",
@@ -516,7 +544,8 @@ function vMonthly(){
      <div class="legend"><span><i style="background:var(--accent)"></i>${t("Cautious estimate")}</span><span><i style="background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)"></i>${t("Likely range")}</span><span><i style="background:var(--muted);height:3px;vertical-align:3px"></i>${t("What you paid in")}</span></div></div>
     <details class="more"><summary>${t("How the funds were picked")}</summary><ol class="method" id="simMethod"></ol></details>
     <p class="sub">${t("Past results are not a forecast. The last 5 years had no crash as deep as 2008, when global stocks fell about 40% in SEK, so a real bad year could be worse than shown.")}</p>
-   </div></div>`,
+   </div></div>
+   <button type="button" class="sumbar" id="sumbar" hidden></button>`,
   after(){
    Object.entries(MON_IDS).forEach(([id,k])=>{$(id).value=st.mon[k];$(id).oninput=e=>{st.mon[k]=Math.max(0,+e.target.value||0);calcMonthly()}});
    $("saveMon").onclick=()=>askName(t("Save this plan"),`${sek(st.mon.monthly)} ${t("a month")} · ${yrs(st.mon.years)} · ${st.mon.sstocks}% ${t("stocks")}`,name=>addSaved(name,"monthly",{...st.mon}));
@@ -547,6 +576,7 @@ function calcMonthly(){
   <li>${t("<b>Picking inside each part:</b> the combination with the highest reward for risk (Sharpe ratio), using each pair's co-movement in weekly SEK prices. At most 30% of a part in one fund, 15% in investment companies combined and 20% in Swedish-listed holdings combined, in 5% steps. The per-fund limit is loosened only when too few funds qualify.")}</li>
   <li>${t("<b>Looking ahead:</b> bonds earn today's 5-year Swedish government yield ({g5}) and stocks 7% a year, the common long-run figure, minus fees. The range is ±1 standard deviation of this mix's measured swings. ISK tax is taken on the balance above 300 000 kr.",{g5:pcf(R.gov5y,2)})}</li>`;
  REDRAW=[()=>drawSimChart(lo,mid,hi)];drawSimChart(lo,mid,hi);save();
+ sumbar($("hero"),`<span><b>${sek(end.bal)}</b> <span class="sub">${t("cautious estimate")}</span></span>${riskPill(lvl)}<span class="sr">${t("Show the result")}</span>`);
 }
 function fmtK(v){return v>=1e6?(v/1e6).toLocaleString(loc(),{maximumFractionDigits:v%1e6?1:0})+" M":v>=1e3?Math.round(v/1e3)+" k":"0"}
 function drawSimChart(lo,mid,hi){const W0=boxW("chartBox"),H0=Math.round(Math.min(300,Math.max(220,W0*.42))),p={l:52,r:14,t:14,b:30},w=W0-p.l-p.r,h=H0-p.t-p.b,n=mid.length-1;
@@ -588,9 +618,9 @@ function vSaved(){
  if(!st.plans.length)return {...head,html:`<div class="blank">${svgI("saved")}<h2>${t("No saved plans yet")}</h2><p>${t("Build a plan under My plan or Monthly saving, then press “Save plan” to keep it and compare it with others.")}</p><div style="display:flex;gap:8px"><a class="btn primary" href="#/plan">${t("My plan")}</a><a class="btn" href="#/monthly">${t("Monthly saving")}</a></div></div>`};
  const rows=st.plans.map(p=>({p,r:savedResult(p)}));
  return {...head,
-  html:`<div class="tbl-wrap"><table><thead><tr><th>${t("Saved plan")}</th><th class="n">${t("Cautious estimate")}</th><th class="n">${t("Likely range")}</th><th class="n">${t("You pay in")}</th><th>${t("Risk level")}</th><th class="n">${t("Biggest drop, 5 yrs")}</th><th></th></tr></thead><tbody>
+  html:`<div class="tbl-wrap"><table class="wrap-head"><thead><tr><th>${t("Saved plan")}</th><th class="n">${t("Cautious estimate")}</th><th class="n">${t("You pay in")}</th><th>${t("Risk level")}</th><th class="n">${t("Biggest drop, 5 yrs")}</th><th></th></tr></thead><tbody>
    ${rows.map(({p,r})=>`<tr><td class="c-plan"><div class="nm">${esc(p.name)}</div><div class="sub">${p.kind==="lump"?t("My plan"):t("Monthly saving")} · ${savedWhat(p)}</div><div class="sub">${t("Saved {d}",{d:new Date(p.at).toLocaleDateString(loc(),{dateStyle:"medium"})})}</div></td>
-    <td class="n">${r?sek(r.est):"–"}</td><td class="n" style="font-weight:400">${r?sek(r.lo)+" – "+sek(r.hi):"–"}</td><td class="n" style="font-weight:400">${r?sek(r.paid):"–"}</td>
+    <td class="n">${r?`${sek(r.est)}<div class="sub" style="font-weight:400">${t("Likely range")} ${sek(r.lo)} – ${sek(r.hi)}</div>`:"–"}</td><td class="n" style="font-weight:400">${r?sek(r.paid):"–"}</td>
     <td>${r?riskPill(r.lvl):"–"}</td><td class="n">${r?drop(r.mdd):"–"}</td>
     <td><div class="rowact"><button class="btn" data-open="${p.id}">${svgI("open")}${t("Open")}</button><button class="btn quiet" data-ren="${p.id}" title="${t("Rename")}" aria-label="${esc(t("Rename")+": "+p.name)}">${svgI("edit")}</button><button class="btn quiet" data-del="${p.id}" title="${t("Delete")}" aria-label="${esc(t("Delete")+": "+p.name)}">${svgI("trash")}</button></div></td></tr>`).join("")}
   </tbody></table></div>
